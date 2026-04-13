@@ -15,7 +15,7 @@ import { initDesignEditor } from './imgly';
 // ============================================================================
 
 const config = {
-  userId: 'starterkit-design-editor-user',
+  userId: 'starterkit-design-editor-user'
 
   // Local assets
   // baseURL: `/assets/`,
