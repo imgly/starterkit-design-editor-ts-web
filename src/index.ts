@@ -15,7 +15,7 @@ import { initDesignEditor } from './imgly';
 // ============================================================================
 
 const config = {
-  userId: 'starterkit-design-editor-user',
+  userId: 'starterkit-design-editor-user'
 
   // Local assets
   // baseURL: `/assets/`,
@@ -31,6 +31,13 @@ CreativeEditorSDK.create('#cesdk_container', config)
     (window as any).cesdk = cesdk;
 
     await initDesignEditor(cesdk);
+    // ============================================================================
+    // Scene Loading
+    // ============================================================================
+
+    await cesdk.loadFromArchiveURL(
+      'https://cdn.img.ly/packages/imgly/plugin-marketing-asset-source-web/1.0.0/assets/templates/4-5-marketing-ad.zip'
+    );
   })
   .catch((error) => {
     // eslint-disable-next-line no-console

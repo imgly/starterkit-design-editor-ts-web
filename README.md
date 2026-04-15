@@ -3,8 +3,7 @@
 Create stunning graphics and layouts for your web app — add text, images, shapes, and export to multiple formats. Built with [CE.SDK](https://img.ly/creative-sdk) by [IMG.LY](https://img.ly), runs entirely in the browser with no server dependencies.
 
 <p>
-  <a href="https://img.ly/docs/cesdk/starterkits/design-editor/">Documentation</a> |
-  <a href="https://img.ly/showcases/cesdk">Live Demo</a>
+  <a href="https://img.ly/docs/cesdk/js/starterkits/design-editor-8unj9u/">Documentation</a>
 </p>
 
 ![Design Editor starter kit showing a graphic design interface](./hero.webp)
