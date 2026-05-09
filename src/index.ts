@@ -15,10 +15,12 @@ import { initDesignEditor } from './imgly';
 // ============================================================================
 
 const config = {
-  userId: 'starterkit-design-editor-user'
+  userId: 'starterkit-design-editor-user',
 
-  // Local assets
-  // baseURL: `/assets/`,
+  // IMG.LY CDN (for quick testing only, NOT recommended for production)
+
+  // Local assets for development
+
 };
 
 // ============================================================================
