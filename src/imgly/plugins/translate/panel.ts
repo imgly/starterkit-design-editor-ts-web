@@ -249,41 +249,49 @@ function registerPanel(
           });
         }
 
+        // Translate button is always rendered while in form mode. While
+        // a run is in flight, the button shows the SDK's built-in loading
+        // spinner (`isLoading: true`) and is non-interactive — re-click
+        // is prevented and the user sees clear visual feedback.
+        builder.Button('translate.go', {
+          label: 'panel.translate.translate',
+          color: 'accent',
+          isLoading: isRunning.value,
+          // API-key + selection gates are handled by the early-return
+          // branches above (the button is only rendered in form mode).
+          // Remaining reasons to keep it disabled are local to the form.
+          isDisabled:
+            isRunning.value ||
+            !catalogReady ||
+            effectiveModelId === '' ||
+            selectedLanguages.length === 0,
+          onClick: () => {
+            const block = selectedImageBlock;
+            if (!block) return;
+            const controller = new AbortController();
+            currentController = controller;
+            isRunning.setValue(true);
+            void runTranslation({
+              cesdk,
+              modelId: effectiveModelId,
+              block,
+              languages: selectedLanguages,
+              signal: controller.signal
+            }).finally(() => {
+              isRunning.setValue(false);
+              currentController = null;
+            });
+          }
+        });
+
+        // A separate Cancel button appears alongside the spinning
+        // Translate button so the user can abort an in-flight run.
         if (isRunning.value) {
           builder.Button('translate.cancel', {
             label: 'panel.translate.cancel',
             color: 'danger',
             onClick: () => {
               currentController?.abort();
-            }
-          });
-        } else {
-          builder.Button('translate.go', {
-            label: 'panel.translate.translate',
-            color: 'accent',
-            // API-key + selection gates are handled by the early-return
-            // branches above (the button is only rendered in form mode).
-            // Remaining reasons to keep it disabled are local to the form.
-            isDisabled:
-              !catalogReady ||
-              effectiveModelId === '' ||
-              selectedLanguages.length === 0,
-            onClick: () => {
-              const block = selectedImageBlock;
-              if (!block) return;
-              const controller = new AbortController();
-              currentController = controller;
-              isRunning.setValue(true);
-              void runTranslation({
-                cesdk,
-                modelId: effectiveModelId,
-                block,
-                languages: selectedLanguages,
-                signal: controller.signal
-              }).finally(() => {
-                isRunning.setValue(false);
-                currentController = null;
-              });
             }
           });
         }
