@@ -55,7 +55,6 @@ export interface TranslateImageArgs {
   targetLanguageId: string;
   targetLanguagePromptName: string;
   modelId: string;
-  signal?: AbortSignal;
 }
 
 export async function translateImage(args: TranslateImageArgs): Promise<Blob> {
@@ -91,11 +90,11 @@ export async function translateImage(args: TranslateImageArgs): Promise<Blob> {
         image_url: upload.asset_url,
         image_urls: [upload.asset_url]
       },
-      { abortSignal: args.signal }
+      {}
     );
 
     // 3. Download the generated image into a Blob the scene can embed.
-    const resp = await fetch(outputUrl, { signal: args.signal });
+    const resp = await fetch(outputUrl);
     if (!resp.ok) {
       throw new TranslateError(
         `Failed to download translated image: ${resp.status}`,

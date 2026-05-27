@@ -41,9 +41,6 @@ export interface SetupTranslatePanelOpts {
   apiKey: string;
 }
 
-// One AbortController per active translation run.
-let currentController: AbortController | null = null;
-
 // Module-level catalog cache so we don't refetch on every panel re-render.
 type CatalogState =
   | { status: 'idle' }
@@ -100,7 +97,6 @@ function registerTranslations(cesdk: CreativeEditorSDK): void {
       [`panel.${TRANSLATE_PANEL_ID}`]: 'Translate Image',
       'panel.translate.model': 'Model',
       'panel.translate.translate': 'Translate',
-      'panel.translate.cancel': 'Cancel',
       'panel.translate.retry': 'Retry',
       'panel.translate.hint.noSelection':
         'Select an image block containing text to translate.',
@@ -186,7 +182,7 @@ function registerPanel(
 
         // Form mode: image block is selected and the API key is set.
         // Render the catalog status row, the dropdown, the language
-        // checkboxes, and the Translate / Cancel button.
+        // checkboxes, and the Translate button.
 
         // Catalog status / error row.
         if (catalog.status === 'loading') {
@@ -268,33 +264,17 @@ function registerPanel(
           onClick: () => {
             const block = selectedImageBlock;
             if (!block) return;
-            const controller = new AbortController();
-            currentController = controller;
             isRunning.setValue(true);
             void runTranslation({
               cesdk,
               modelId: effectiveModelId,
               block,
-              languages: selectedLanguages,
-              signal: controller.signal
+              languages: selectedLanguages
             }).finally(() => {
               isRunning.setValue(false);
-              currentController = null;
             });
           }
         });
-
-        // A separate Cancel button appears alongside the spinning
-        // Translate button so the user can abort an in-flight run.
-        if (isRunning.value) {
-          builder.Button('translate.cancel', {
-            label: 'panel.translate.cancel',
-            color: 'danger',
-            onClick: () => {
-              currentController?.abort();
-            }
-          });
-        }
       }
     });
   });
@@ -339,11 +319,10 @@ interface RunArgs {
   modelId: string;
   block: number;
   languages: typeof TARGET_LANGUAGES;
-  signal: AbortSignal;
 }
 
 async function runTranslation(args: RunArgs): Promise<void> {
-  const { cesdk, modelId, block, languages, signal } = args;
+  const { cesdk, modelId, block, languages } = args;
   const engine = cesdk.engine;
 
   const sourcePageId = findParentPage(engine, block);
@@ -382,20 +361,10 @@ async function runTranslation(args: RunArgs): Promise<void> {
           image: sourceBlob,
           targetLanguageId: lang.id,
           targetLanguagePromptName: lang.promptName,
-          modelId,
-          signal
+          modelId
         }).then((blob) => ({ lang, blob }))
       )
     );
-
-    if (signal.aborted) {
-      cesdk.ui.showNotification({
-        type: 'info',
-        message: 'Translation cancelled.',
-        duration: 'short'
-      });
-      return;
-    }
 
     const failures: { lang: string; error: unknown }[] = [];
     let added = 0;
