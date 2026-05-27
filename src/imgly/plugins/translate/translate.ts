@@ -79,11 +79,17 @@ export async function translateImage(args: TranslateImageArgs): Promise<Blob> {
 
     // 2. Kick off generation. The client subscribes to the SSE stream and
     //    resolves with the output URL when `generation.completed` fires.
+    //
+    // Image-edit models in the gateway are inconsistent about whether
+    // they expect `image_url` (singular string) or `image_urls` (plural
+    // array). Sending both is the cheapest polyfill until we introspect
+    // the schema per-model (via `client.fetchSchema(modelId)`).
     const outputUrl = await client.generate(
       args.modelId,
       {
         prompt,
-        image_url: upload.asset_url
+        image_url: upload.asset_url,
+        image_urls: [upload.asset_url]
       },
       { abortSignal: args.signal }
     );
