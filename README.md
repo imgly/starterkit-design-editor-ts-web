@@ -173,8 +173,8 @@ is one undo step.
    new pages appended in checked order.
 5. During a run, click Cancel — no pages appended; toast confirms. Note:
    cancellation takes effect after the source image finishes uploading to
-   the provider's storage (a known limitation of `@fal-ai/client` —
-   `storage.upload` does not yet honor `AbortSignal`). For small demo
+   gateway storage (a current limitation of the IMG.LY gateway client's
+   `upload()` — it does not yet forward `AbortSignal`). For small demo
    images this is near-instant.
 6. Unset `VITE_AI_API_KEY`, restart the dev server, click Translate — the
    panel surfaces a clear "AI API key not configured" hint and the

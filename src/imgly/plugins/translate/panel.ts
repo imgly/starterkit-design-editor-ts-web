@@ -35,11 +35,20 @@ type CatalogState =
   | { status: 'error'; message: string };
 
 let catalog: CatalogState = { status: 'idle' };
-const catalogSubscribers = new Set<() => void>();
+
+// Bumped on every catalog transition. The panel's render function seeds
+// its reactive state from this counter and re-reads it on each render,
+// so catalog mutations propagate to the UI without unbounded subscribers.
+let catalogVersion = 0;
+
+// Single registered notifier (set by setupTranslatePanel). Calling it
+// after a catalog mutation tells CE.SDK to re-render the panel.
+let notifyPanelRerender: (() => void) | null = null;
 
 function setCatalog(next: CatalogState): void {
   catalog = next;
-  for (const fn of catalogSubscribers) fn();
+  catalogVersion += 1;
+  notifyPanelRerender?.();
 }
 
 async function loadCatalog(gatewayUrl: string): Promise<void> {
@@ -98,9 +107,18 @@ function registerPanel(
       void loadCatalog(opts.gatewayUrl);
     }
 
-    // Force-rerender hook: subscribe to catalog changes via a counter.
-    const version = state('translate.catalogVersion', 0);
-    catalogSubscribers.add(() => version.setValue(version.value + 1));
+    // Bind the panel's reactive state to the module-level catalog
+    // version. The renderer reads `catalogVersion` once per render;
+    // setCatalog() bumps it and calls notifyPanelRerender below to
+    // force the next render cycle.
+    const version = state('translate.catalogVersion', catalogVersion);
+    if (version.value !== catalogVersion) {
+      // The module-level counter moved since the last render; sync.
+      version.setValue(catalogVersion);
+    }
+    notifyPanelRerender = () => {
+      version.setValue(catalogVersion);
+    };
 
     // Reactive panel state.
     const modelId = state<string>('translate.modelId', '');
@@ -155,6 +173,7 @@ function registerPanel(
           builder.Button('translate.catalog.retry', {
             label: 'panel.translate.retry',
             onClick: () => {
+              setCatalog({ status: 'idle' });
               void loadCatalog(opts.gatewayUrl);
             }
           });
