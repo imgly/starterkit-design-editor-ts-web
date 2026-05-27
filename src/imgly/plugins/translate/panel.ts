@@ -60,7 +60,6 @@ function registerTranslations(cesdk: CreativeEditorSDK): void {
     en: {
       'panel.translate.title': 'Translate Image',
       'panel.translate.model': 'Model',
-      'panel.translate.languages': 'Target languages',
       'panel.translate.translate': 'Translate',
       'panel.translate.cancel': 'Cancel',
       'panel.translate.hint.noSelection':
@@ -272,83 +271,85 @@ async function runTranslation(args: RunArgs): Promise<void> {
   // 3. Set busy state on the block too (visual progress indicator).
   engine.block.setState(block, { type: 'Pending', progress: 0 });
 
-  // 4. Fan out per language.
-  const results = await Promise.allSettled(
-    languages.map((lang) =>
-      translateImage({
-        image: sourceBlob,
-        targetLanguageId: lang.id,
-        targetLanguagePromptName: lang.promptName,
-        providerId,
-        proxyUrl,
-        signal
-      }).then((blob) => ({ lang, blob }))
-    )
-  );
+  try {
+    // 4. Fan out per language.
+    const results = await Promise.allSettled(
+      languages.map((lang) =>
+        translateImage({
+          image: sourceBlob,
+          targetLanguageId: lang.id,
+          targetLanguagePromptName: lang.promptName,
+          providerId,
+          proxyUrl,
+          signal
+        }).then((blob) => ({ lang, blob }))
+      )
+    );
 
-  // 5. If the run was cancelled, skip the commit phase entirely.
-  if (signal.aborted) {
-    engine.block.setState(block, { type: 'Ready' });
-    cesdk.ui.showNotification({
-      type: 'info',
-      message: 'Translation cancelled.',
-      duration: 'short'
-    });
-    return;
-  }
+    // 5. If the run was cancelled, skip the commit phase entirely.
+    if (signal.aborted) {
+      cesdk.ui.showNotification({
+        type: 'info',
+        message: 'Translation cancelled.',
+        duration: 'short'
+      });
+      return;
+    }
 
-  // 6. Sequential commit in original language order.
-  const failures: { lang: string; error: unknown }[] = [];
-  let added = 0;
-  for (let i = 0; i < results.length; i++) {
-    const r = results[i];
-    const lang = languages[i];
-    if (r.status === 'fulfilled') {
-      try {
-        await appendTranslatedPage({
-          cesdk,
-          sourcePageId,
-          translated: r.value.blob,
-          label: lang.label
-        });
-        added++;
-      } catch (err) {
-        console.error(`Failed to append page for ${lang.label}:`, err);
+    // 6. Sequential commit in original language order.
+    const failures: { lang: string; error: unknown }[] = [];
+    let added = 0;
+    for (let i = 0; i < results.length; i++) {
+      const r = results[i];
+      const lang = languages[i];
+      if (r.status === 'fulfilled') {
+        try {
+          await appendTranslatedPage({
+            cesdk,
+            sourcePageId,
+            translated: r.value.blob,
+            label: lang.label
+          });
+          added++;
+        } catch (err) {
+          console.error(`Failed to append page for ${lang.label}:`, err);
+          failures.push({ lang: lang.label, error: err });
+        }
+      } else {
+        const err = r.reason;
+        console.error(
+          `Translation failed for ${lang.label}:`,
+          err instanceof TranslateError ? err.cause ?? err : err
+        );
         failures.push({ lang: lang.label, error: err });
       }
-    } else {
-      const err = r.reason;
-      console.error(
-        `Translation failed for ${lang.label}:`,
-        err instanceof TranslateError ? err.cause ?? err : err
-      );
-      failures.push({ lang: lang.label, error: err });
     }
-  }
 
-  // 7. Single undo step covers the whole batch.
-  if (added > 0) {
-    engine.editor.addUndoStep();
-  }
-  engine.block.setState(block, { type: 'Ready' });
+    // 7. Single undo step covers the whole batch.
+    if (added > 0) {
+      engine.editor.addUndoStep();
+    }
 
-  // 8. One combined toast.
-  if (failures.length === 0) {
-    cesdk.ui.showNotification({
-      type: 'success',
-      message: `${added} translated page${added === 1 ? '' : 's'} added.`,
-      duration: 'medium'
-    });
-  } else {
-    const failedLangs = failures.map((f) => f.lang).join(', ');
-    cesdk.ui.showNotification({
-      type: added > 0 ? 'warning' : 'error',
-      message:
-        added > 0
-          ? `${added} page${added === 1 ? '' : 's'} added; ${failedLangs} failed.`
-          : `Translation failed for ${failedLangs}.`,
-      duration: 'long'
-    });
+    // 8. One combined toast.
+    if (failures.length === 0) {
+      cesdk.ui.showNotification({
+        type: 'success',
+        message: `${added} translated page${added === 1 ? '' : 's'} added.`,
+        duration: 'medium'
+      });
+    } else {
+      const failedLangs = failures.map((f) => f.lang).join(', ');
+      cesdk.ui.showNotification({
+        type: added > 0 ? 'warning' : 'error',
+        message:
+          added > 0
+            ? `${added} page${added === 1 ? '' : 's'} added; ${failedLangs} failed.`
+            : `Translation failed for ${failedLangs}.`,
+        duration: 'long'
+      });
+    }
+  } finally {
+    engine.block.setState(block, { type: 'Ready' });
   }
 }
 

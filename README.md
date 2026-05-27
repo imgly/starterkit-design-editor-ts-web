@@ -163,7 +163,11 @@ is one undo step.
    unchanged; ⌘Z / Ctrl+Z undoes the new page.
 4. Re-select source image, check three languages, click Translate — three
    new pages appended in checked order.
-5. During a run, click Cancel — no pages appended; toast confirms.
+5. During a run, click Cancel — no pages appended; toast confirms. Note:
+   cancellation takes effect after the source image finishes uploading to
+   the provider's storage (a known limitation of `@fal-ai/client` —
+   `storage.upload` does not yet honor `AbortSignal`). For small demo
+   images this is near-instant.
 6. Unset `VITE_IMGLY_AI_PROXY_URL`, restart the dev server, click Translate
    — clear toast about missing proxy URL.
 
