@@ -338,7 +338,6 @@ async function runTranslation(args: RunArgs): Promise<void> {
   const { cesdk, modelId, block, languages, signal } = args;
   const engine = cesdk.engine;
 
-  const fill = engine.block.getFill(block);
   const sourcePageId = findParentPage(engine, block);
   if (sourcePageId == null) {
     cesdk.ui.showNotification({
@@ -351,7 +350,11 @@ async function runTranslation(args: RunArgs): Promise<void> {
 
   let sourceBlob: Blob;
   try {
-    sourceBlob = await engine.block.export(fill, { mimeType: 'image/png' });
+    // Export the graphic block itself, not its fill: fill blocks are not
+    // attached to the scene graph as standalone nodes, so the engine
+    // refuses to export them. Exporting the graphic block also gives us
+    // the post-crop / post-transform view the LLM should actually read.
+    sourceBlob = await engine.block.export(block, { mimeType: 'image/png' });
   } catch (err) {
     console.error('Failed to export source image:', err);
     cesdk.ui.showNotification({
