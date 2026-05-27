@@ -130,6 +130,43 @@ starterkit-design-editor-ts-web/
 
 For complete integration guides and API reference, visit the [Design Editor Documentation](https://img.ly/docs/cesdk/starterkits/design-editor/).
 
+## Translate (AI Image Translation)
+
+The Translate dock entry takes a selected image block with rasterized text
+and produces one new page per checked target language, each containing the
+image with text translated by an image-edit LLM.
+
+### Configuration
+
+1. Copy `.env.example` to `.env` and set `VITE_IMGLY_AI_PROXY_URL` to your
+   IMG.LY proxy URL.
+2. Restart the dev server.
+
+### Usage
+
+1. Open the editor and select an image block (one with a raster image fill).
+2. Click the **Translate** entry in the dock.
+3. Pick a model from the dropdown (Nano Banana Edit, Gemini 2.5 Flash, etc.).
+4. Check the target languages (German, English, Spanish, Russian, Chinese).
+5. Click **Translate**.
+
+For each checked language, a new page is appended to the document containing
+only the translated image. The source page is left unchanged. The whole batch
+is one undo step.
+
+### Manual smoke checklist
+
+1. Open the editor, load the default marketing scene, select the image block.
+2. Open the Translate dock entry — panel opens, model dropdown populated,
+   no languages checked, Translate button disabled with inline hint.
+3. Check German, click Translate — one new page appended; original page
+   unchanged; ⌘Z / Ctrl+Z undoes the new page.
+4. Re-select source image, check three languages, click Translate — three
+   new pages appended in checked order.
+5. During a run, click Cancel — no pages appended; toast confirms.
+6. Unset `VITE_IMGLY_AI_PROXY_URL`, restart the dev server, click Translate
+   — clear toast about missing proxy URL.
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
