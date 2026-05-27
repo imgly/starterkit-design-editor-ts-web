@@ -10,6 +10,7 @@ import type CreativeEditorSDK from '@cesdk/cesdk-js';
 import { setupTranslatePanel } from './panel';
 import { installAiCredentials, setConfiguredApiKey } from './credentials';
 import { DEFAULT_GATEWAY_URL } from './providers';
+import { configureTranslate } from './translate';
 
 export interface SetupTranslatePluginOpts {
   /** IMG.LY dashboard API key. '' means not configured. */
@@ -30,7 +31,7 @@ export function setupTranslatePlugin(
   }
   setConfiguredApiKey(opts.apiKey);
   installAiCredentials(cesdk);
-  // configureTranslate is wired up in M2; not called here yet.
+  configureTranslate({ gatewayUrl });
   setupTranslatePanel(cesdk, { gatewayUrl, apiKey: opts.apiKey });
 }
 
