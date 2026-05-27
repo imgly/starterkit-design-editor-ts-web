@@ -98,7 +98,6 @@ function registerTranslations(cesdk: CreativeEditorSDK): void {
       // CE.SDK derives the panel header's i18n key from the panel id
       // (`panel.<panelId>`), so we register that exact key here.
       [`panel.${TRANSLATE_PANEL_ID}`]: 'Translate Image',
-      'panel.translate.title': 'Translate Image',
       'panel.translate.model': 'Model',
       'panel.translate.translate': 'Translate',
       'panel.translate.cancel': 'Cancel',
@@ -167,7 +166,7 @@ function registerPanel(
     const catalogReady = catalog.status === 'ready';
 
     builder.Section('translate.section', {
-      title: 'panel.translate.title',
+      // No title here — the panel header already says "Translate Image".
       children: () => {
         // Empty / config-error states: render only the hint. The form is
         // intentionally hidden until the user has something actionable to
