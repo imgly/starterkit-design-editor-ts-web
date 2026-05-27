@@ -11,8 +11,8 @@
   "dependencies": {
     "@cesdk/cesdk-js": "^1.75.1",
     "@cesdk/engine": "^1.75.1",
-    "@fal-ai/client": "^1.10.1",
     "@imgly/background-removal": "1.7.0",
+    "@imgly/plugin-ai-generation-web": "^1.75.1",
     "@imgly/plugin-ai-image-generation-web": "^1.75.1",
     "onnxruntime-web": "1.21.0"
   },

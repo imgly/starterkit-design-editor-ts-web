@@ -1,44 +1,38 @@
 /**
- * Translate plugin — public entry point.
+ * Translate plugin — public entry point (gateway edition).
  *
- * Wires up the custom Translate panel + dock entry. The official
- * `@imgly/plugin-ai-image-generation-web` plugin is added separately in
- * `src/imgly/index.ts` so the editor also gets the regular AI image-edit
- * dock entry "for free", driven by the same provider list.
+ * Registers the `ly.img.ai.getToken` credential action and wires the
+ * custom Translate panel + dock entry.
  */
 
 import type CreativeEditorSDK from '@cesdk/cesdk-js';
 
 import { setupTranslatePanel } from './panel';
-import { configureTranslate } from './translate';
+import { installAiCredentials, setConfiguredApiKey } from './credentials';
+import { DEFAULT_GATEWAY_URL } from './providers';
 
 export interface SetupTranslatePluginOpts {
-  /**
-   * IMG.LY proxy URL. Pass an empty string to indicate "not configured" —
-   * the panel will render and surface a clear toast when the user clicks
-   * Translate, rather than refusing to register the dock entry.
-   */
-  proxyUrl: string;
+  /** IMG.LY dashboard API key. '' means not configured. */
+  apiKey: string;
+  /** Gateway URL. Defaults to https://gateway.img.ly. */
+  gatewayUrl?: string;
 }
 
 export function setupTranslatePlugin(
   cesdk: CreativeEditorSDK,
   opts: SetupTranslatePluginOpts
 ): void {
-  if (!opts.proxyUrl) {
-    // Surfaced visibly when the user clicks Translate; this is just a
-    // dev hint at startup.
+  const gatewayUrl = opts.gatewayUrl ?? DEFAULT_GATEWAY_URL;
+  if (!opts.apiKey) {
     console.warn(
-      '[translate] No proxy URL configured. ' +
-        'Set VITE_IMGLY_AI_PROXY_URL in .env.'
+      '[translate] No API key configured. Set VITE_AI_API_KEY in .env.'
     );
-  } else {
-    // Configure the fal.ai client singleton ONCE at startup so concurrent
-    // translateImage() calls don't race over fal.config(). See translate.ts.
-    configureTranslate({ proxyUrl: opts.proxyUrl });
   }
-  setupTranslatePanel(cesdk, opts);
+  setConfiguredApiKey(opts.apiKey);
+  installAiCredentials(cesdk);
+  // configureTranslate is wired up in M2; not called here yet.
+  setupTranslatePanel(cesdk, { gatewayUrl, apiKey: opts.apiKey });
 }
 
 export { TRANSLATE_PANEL_ID, TRANSLATE_DOCK_ID } from './panel';
-export { TRANSLATE_PROVIDERS, TARGET_LANGUAGES } from './providers';
+export { TARGET_LANGUAGES, DEFAULT_GATEWAY_URL } from './providers';

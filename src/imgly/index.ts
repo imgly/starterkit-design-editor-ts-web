@@ -32,9 +32,9 @@ import { DesignEditorConfig } from '../../design-editor/plugin';
 import { setupBackgroundRemovalPlugin } from './plugins/background-removal';
 import ImageGeneration from '@imgly/plugin-ai-image-generation-web';
 import {
-  TRANSLATE_PROVIDERS,
-  toAiPluginProvider,
-  DEFAULT_PROXY_URL
+  CURATED_IMAGE_EDIT_MODEL_IDS,
+  DEFAULT_GATEWAY_URL,
+  instantiateGatewayProviders
 } from './plugins/translate/providers';
 import { setupTranslatePlugin } from './plugins/translate';
 
@@ -82,17 +82,19 @@ export async function initDesignEditor(cesdk: CreativeEditorSDK) {
   // Translate Plugin (custom) + AI Image Generation Plugin (official)
   // ============================================================================
 
-  const proxyUrl =
-    import.meta.env.VITE_IMGLY_AI_PROXY_URL ?? DEFAULT_PROXY_URL;
+  const apiKey = import.meta.env.VITE_AI_API_KEY ?? '';
+  const gatewayUrl =
+    import.meta.env.VITE_AI_GATEWAY_URL ?? DEFAULT_GATEWAY_URL;
 
   // Official AI image plugin — gives the editor a regular AI image-edit
-  // dock entry. Same provider list as the Translate panel below.
-  if (proxyUrl) {
+  // dock entry, driven by a small curated set of gateway models.
+  if (apiKey) {
     await cesdk.addPlugin(
       ImageGeneration({
         providers: {
-          image2image: TRANSLATE_PROVIDERS.map((p) =>
-            toAiPluginProvider(p, proxyUrl)
+          image2image: instantiateGatewayProviders(
+            CURATED_IMAGE_EDIT_MODEL_IDS,
+            gatewayUrl
           )
         }
       })
@@ -101,7 +103,7 @@ export async function initDesignEditor(cesdk: CreativeEditorSDK) {
 
   // Custom Translate plugin — adds the dock entry + side panel that
   // produces one new page per checked target language.
-  setupTranslatePlugin(cesdk, { proxyUrl });
+  setupTranslatePlugin(cesdk, { apiKey, gatewayUrl });
 
   // ============================================================================
   // Asset Source Plugins
