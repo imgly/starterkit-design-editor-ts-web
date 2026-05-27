@@ -1,0 +1,235 @@
+/**
+ * Onboarding screen shown when no IMG.LY API key is configured.
+ *
+ * Class names are prefixed with `tr-ob-` (translate-onboarding) to
+ * avoid collisions with anything the host page (or CE.SDK itself)
+ * might style.
+ */
+
+.tr-ob-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  background: #f9fafb;
+  overflow-y: auto;
+  box-sizing: border-box;
+  color: #161617;
+  font-family:
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+}
+
+.tr-ob-card {
+  max-width: 560px;
+  width: 100%;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  box-sizing: border-box;
+}
+
+.tr-ob-badge {
+  align-self: flex-start;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.tr-ob-badge--invalid {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.tr-ob-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+  line-height: 32px;
+}
+
+.tr-ob-lead {
+  font-size: 15px;
+  color: #4b5563;
+  margin: 0;
+  line-height: 22px;
+}
+
+.tr-ob-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.tr-ob-step {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.tr-ob-step-number {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: #111827;
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tr-ob-step-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tr-ob-step-text {
+  font-size: 14px;
+  color: #1f2937;
+  line-height: 20px;
+  margin: 0;
+}
+
+.tr-ob-step-text code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 13px;
+  background: #f3f4f6;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.tr-ob-step-text a {
+  color: #2563eb;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  font-weight: 500;
+}
+
+.tr-ob-step-text a:hover {
+  color: #1d4ed8;
+}
+
+.tr-ob-codeblock {
+  background: #111827;
+  color: #f9fafb;
+  padding: 12px 14px;
+  border-radius: 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 13px;
+  line-height: 18px;
+  white-space: pre;
+  overflow-x: auto;
+  margin: 0;
+}
+
+.tr-ob-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 4px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.tr-ob-button {
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 10px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid transparent;
+}
+
+.tr-ob-button--primary {
+  background: #111827;
+  color: white;
+}
+
+.tr-ob-button--primary:hover {
+  background: #1f2937;
+}
+
+.tr-ob-button--secondary {
+  background: white;
+  color: #111827;
+  border-color: #d1d5db;
+}
+
+.tr-ob-button--secondary:hover {
+  background: #f9fafb;
+}
+
+.tr-ob-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.tr-ob-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tr-ob-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.tr-ob-input {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 13px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  border: 1px solid #d1d5db;
+  background: white;
+  color: #111827;
+  line-height: 20px;
+}
+
+.tr-ob-input:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.tr-ob-helper-text {
+  font-size: 12px;
+  color: #6b7280;
+  margin: 0;
+  line-height: 16px;
+}
+
+.tr-ob-helper-text a {
+  color: #2563eb;
+  text-decoration: underline;
+}

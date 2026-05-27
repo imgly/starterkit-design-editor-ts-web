@@ -5,6 +5,15 @@
  * Every authenticated gateway call goes through that action — both the
  * official AI plugin's providers and our custom Translate flow.
  *
+ * Two key sources are supported, in order of precedence:
+ *
+ *   1. A user-pasted key in `localStorage` — written by the onboarding
+ *      screen when the editor is opened from a deployed bundle
+ *      (`import.meta.env.PROD === true`) without a baked-in key.
+ *   2. `VITE_AI_API_KEY` — read once at startup and stored in
+ *      `envApiKey` via `setConfiguredApiKey`. Used during local dev
+ *      after the developer fills in `.env`.
+ *
  * ⚠️ PRODUCTION WARNING
  *
  * `resolveAiToken` returns the raw API key via `{ dangerouslyExposeApiKey }`.
@@ -22,33 +31,89 @@
 
 import type CreativeEditorSDK from '@cesdk/cesdk-js';
 
-let configuredApiKey = '';
+// ---------------------------------------------------------------------------
+// Env-sourced API key
+// ---------------------------------------------------------------------------
+
+let envApiKey = '';
 
 export type AiTokenResult = string | { dangerouslyExposeApiKey: string };
 
 /**
- * Set the API key the token action will return. Called once from
- * `setupTranslatePlugin` at startup. Returning the dev path
- * (`dangerouslyExposeApiKey`) is intentional — see file header.
+ * Set the env-sourced API key. Called once at startup from the editor
+ * wiring. A user-pasted key in `localStorage` takes precedence — see
+ * `getApiKey` below.
  */
 export function setConfiguredApiKey(key: string): void {
-  configuredApiKey = key;
+  envApiKey = key;
 }
 
-/** Read the configured key (used by the gateway client's getToken callback). */
-export function getConfiguredApiKey(): string {
-  return configuredApiKey;
+// ---------------------------------------------------------------------------
+// User-pasted API key (deployed bundles only — see onboarding screen)
+// ---------------------------------------------------------------------------
+
+const USER_API_KEY_STORAGE = 'imgly.translate-demo.apiKey';
+
+/**
+ * Read a user-pasted API key from `localStorage`. Only honored when
+ * `import.meta.env.PROD === true`; during `vite dev` the `.env` file
+ * remains the single source of truth so the dev experience is
+ * predictable (no stale browser state lingering between runs).
+ */
+export function getUserApiKey(): string | undefined {
+  if (!import.meta.env.PROD) return undefined;
+  if (typeof window === 'undefined') return undefined;
+  try {
+    const stored = window.localStorage.getItem(USER_API_KEY_STORAGE);
+    return stored != null && stored.length > 0 ? stored : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export function setUserApiKey(key: string): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(USER_API_KEY_STORAGE, key);
+  } catch {
+    // `localStorage` may be disabled (private browsing, quota, etc.).
+    // Silently drop — the onboarding screen will re-prompt after reload.
+  }
+}
+
+export function clearUserApiKey(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.removeItem(USER_API_KEY_STORAGE);
+  } catch {
+    // Same reasoning as `setUserApiKey` — nothing to do on failure.
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Resolution
+// ---------------------------------------------------------------------------
+
+/**
+ * Effective API key: user-pasted (localStorage, prod only) takes
+ * precedence over the env-sourced key.
+ */
+export function getApiKey(): string {
+  const stored = getUserApiKey();
+  if (stored != null && stored.length > 0) return stored;
+  return envApiKey;
 }
 
 /** Resolve a token for `ly.img.ai.getToken` or for the gateway client. */
 export async function resolveAiToken(): Promise<AiTokenResult> {
-  if (!configuredApiKey) {
+  const apiKey = getApiKey();
+  if (!apiKey) {
     throw new Error(
       'No AI credentials configured. Set VITE_AI_API_KEY to an API key from ' +
         'https://img.ly/dashboard.'
     );
   }
-  return { dangerouslyExposeApiKey: configuredApiKey };
+  return { dangerouslyExposeApiKey: apiKey };
 }
 
 /** Collapse `AiTokenResult` to the raw bearer string. */

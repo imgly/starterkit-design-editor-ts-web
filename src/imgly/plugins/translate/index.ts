@@ -37,6 +37,12 @@ export function setupTranslatePlugin(
 
 export { TRANSLATE_PANEL_ID, TRANSLATE_DOCK_ID } from './panel';
 export { TARGET_LANGUAGES, DEFAULT_GATEWAY_URL } from './providers';
+export { getApiKey, setConfiguredApiKey } from './credentials';
+export {
+  renderOnboardingScreen,
+  type OnboardingReason,
+  type RenderOnboardingScreenOpts
+} from './onboarding';
 
 /**
  * Register the `ly.img.ai.getToken` credential action eagerly.
@@ -55,6 +61,9 @@ export function installTranslateCredentials(
   cesdk: CreativeEditorSDK,
   opts: { apiKey: string }
 ): void {
+  // `setConfiguredApiKey` only sets the env-sourced key. A user-pasted
+  // key in `localStorage` (written by the onboarding screen in prod
+  // builds) takes precedence and is read dynamically by `resolveAiToken`.
   setConfiguredApiKey(opts.apiKey);
   installAiCredentials(cesdk);
 }
