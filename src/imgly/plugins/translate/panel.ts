@@ -104,7 +104,7 @@ function registerTranslations(cesdk: CreativeEditorSDK): void {
       'panel.translate.cancel': 'Cancel',
       'panel.translate.retry': 'Retry',
       'panel.translate.hint.noSelection':
-        'Select an image block to translate.',
+        'Select an image block containing text to translate.',
       'panel.translate.hint.noLanguages':
         'Choose at least one target language.',
       'panel.translate.hint.noApiKey':
@@ -166,21 +166,31 @@ function registerPanel(
 
     const catalogReady = catalog.status === 'ready';
 
-    const disabledReason = !apiKeyConfigured
-      ? 'panel.translate.hint.noApiKey'
-      : !catalogReady
-      ? null // disabled, but no hint — catalog status text shows instead
-      : selectedImageBlock == null
-      ? 'panel.translate.hint.noSelection'
-      : selectedLanguages.length === 0
-      ? 'panel.translate.hint.noLanguages'
-      : null;
-
     builder.Section('translate.section', {
       title: 'panel.translate.title',
       children: () => {
+        // Empty / config-error states: render only the hint. The form is
+        // intentionally hidden until the user has something actionable to
+        // do, so the panel isn't cluttered with disabled inputs.
+        if (!apiKeyConfigured) {
+          builder.Text('translate.hint', {
+            content: cesdk.i18n.translate('panel.translate.hint.noApiKey')
+          });
+          return;
+        }
+        if (selectedImageBlock == null) {
+          builder.Text('translate.hint', {
+            content: cesdk.i18n.translate('panel.translate.hint.noSelection')
+          });
+          return;
+        }
+
+        // Form mode: image block is selected and the API key is set.
+        // Render the catalog status row, the dropdown, the language
+        // checkboxes, and the Translate / Cancel button.
+
         // Catalog status / error row.
-        if (apiKeyConfigured && catalog.status === 'loading') {
+        if (catalog.status === 'loading') {
           builder.Text('translate.catalog.status', {
             content: cesdk.i18n.translate('panel.translate.catalog.loading')
           });
@@ -231,9 +241,12 @@ function registerPanel(
           });
         }
 
-        if (disabledReason !== null) {
+        // "Pick at least one language" is the only remaining inline hint:
+        // the user is already in the right place; this nudges them to
+        // complete the form.
+        if (catalogReady && selectedLanguages.length === 0) {
           builder.Text('translate.hint', {
-            content: cesdk.i18n.translate(disabledReason)
+            content: cesdk.i18n.translate('panel.translate.hint.noLanguages')
           });
         }
 
@@ -249,10 +262,13 @@ function registerPanel(
           builder.Button('translate.go', {
             label: 'panel.translate.translate',
             color: 'accent',
+            // API-key + selection gates are handled by the early-return
+            // branches above (the button is only rendered in form mode).
+            // Remaining reasons to keep it disabled are local to the form.
             isDisabled:
-              disabledReason != null ||
               !catalogReady ||
-              effectiveModelId === '',
+              effectiveModelId === '' ||
+              selectedLanguages.length === 0,
             onClick: () => {
               const block = selectedImageBlock;
               if (!block) return;
