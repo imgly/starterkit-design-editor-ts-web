@@ -138,15 +138,23 @@ image with text translated by an image-edit LLM.
 
 ### Configuration
 
-1. Copy `.env.example` to `.env` and set `VITE_IMGLY_AI_PROXY_URL` to your
-   IMG.LY proxy URL.
+1. Copy `.env.example` to `.env` and set `VITE_AI_API_KEY` to an API key
+   from the [IMG.LY dashboard](https://img.ly/dashboard). (Optionally set
+   `VITE_AI_GATEWAY_URL` if you want to point at a non-production gateway.)
 2. Restart the dev server.
+
+The starter forwards the key to the gateway via `{ dangerouslyExposeApiKey }`,
+which exposes it to anyone with browser DevTools access. This is intentional
+for local development only. In production, return a short-lived JWT minted
+by your backend from the `ly.img.ai.getToken` action handler instead.
 
 ### Usage
 
 1. Open the editor and select an image block (one with a raster image fill).
 2. Click the **Translate** entry in the dock.
-3. Pick a model from the dropdown (Nano Banana Edit, Gemini 2.5 Flash, etc.).
+3. Pick a model from the dropdown — populated dynamically from
+   `GET ${gatewayUrl}/v1/models?groupBy=capability` and filtered to
+   image-edit capable models.
 4. Check the target languages (German, English, Spanish, Russian, Chinese).
 5. Click **Translate**.
 
@@ -168,8 +176,9 @@ is one undo step.
    the provider's storage (a known limitation of `@fal-ai/client` —
    `storage.upload` does not yet honor `AbortSignal`). For small demo
    images this is near-instant.
-6. Unset `VITE_IMGLY_AI_PROXY_URL`, restart the dev server, click Translate
-   — clear toast about missing proxy URL.
+6. Unset `VITE_AI_API_KEY`, restart the dev server, click Translate — the
+   panel surfaces a clear "AI API key not configured" hint and the
+   Translate button is disabled.
 
 ## License
 
