@@ -9,7 +9,10 @@ import type CreativeEditorSDK from '@cesdk/cesdk-js';
 
 export interface AppendTranslatedPageArgs {
   cesdk: CreativeEditorSDK;
+  /** Page that contains `sourceBlockId`. Sets the new page's dimensions. */
   sourcePageId: number;
+  /** Source image block. Sets the new image block's position and size. */
+  sourceBlockId: number;
   translated: Blob;
   /** Used as the new page's name (e.g. "German"). */
   label: string;
@@ -17,9 +20,10 @@ export interface AppendTranslatedPageArgs {
 
 /**
  * Creates a new page in the same scene as `sourcePageId`, matching its
- * dimensions, and adds one image block that fills the page. The translated
- * Blob is stored as a `buffer://` resource so it lives inside the scene
- * (no `objectURL` that would leak on reload).
+ * dimensions, and adds one image block whose position and size mirror
+ * those of `sourceBlockId` on the original page. The translated Blob is
+ * stored as a `buffer://` resource so it lives inside the scene (no
+ * `objectURL` that would leak on reload).
  *
  * Caller is responsible for `engine.editor.addUndoStep()` after batching
  * multiple appends — we don't add one per page.
@@ -27,12 +31,19 @@ export interface AppendTranslatedPageArgs {
 export async function appendTranslatedPage(
   args: AppendTranslatedPageArgs
 ): Promise<void> {
-  const { cesdk, sourcePageId, translated, label } = args;
+  const { cesdk, sourcePageId, sourceBlockId, translated, label } = args;
   const engine = cesdk.engine;
 
-  // 1. Read source dimensions.
-  const width = engine.block.getFrameWidth(sourcePageId);
-  const height = engine.block.getFrameHeight(sourcePageId);
+  // 1. Read source dimensions: page for the new page itself, image block
+  //    for the placed image. Keeping them separate is what makes the
+  //    translated image land at the exact same spot as the original
+  //    rather than getting stretched to fill the page.
+  const pageWidth = engine.block.getFrameWidth(sourcePageId);
+  const pageHeight = engine.block.getFrameHeight(sourcePageId);
+  const blockX = engine.block.getFrameX(sourceBlockId);
+  const blockY = engine.block.getFrameY(sourceBlockId);
+  const blockWidth = engine.block.getFrameWidth(sourceBlockId);
+  const blockHeight = engine.block.getFrameHeight(sourceBlockId);
 
   // 2. Find the scene and the parent of the source page (page stack /
   // scene root). The new page is appended as a sibling so it lands in
@@ -57,19 +68,20 @@ export async function appendTranslatedPage(
   const arrayBuffer = await translated.arrayBuffer();
   engine.editor.setBufferData(bufferUri, 0, new Uint8Array(arrayBuffer));
 
-  // 4. Create the new page block with matching dimensions.
+  // 4. Create the new page block with matching page dimensions.
   const newPage = engine.block.create('page');
   engine.block.setName(newPage, label);
-  engine.block.setWidth(newPage, width);
-  engine.block.setHeight(newPage, height);
+  engine.block.setWidth(newPage, pageWidth);
+  engine.block.setHeight(newPage, pageHeight);
   engine.block.appendChild(parent, newPage);
 
-  // 5. Create the image block and its image fill, sized to fill the page.
+  // 5. Create the image block, mirroring the source block's position
+  //    and size on the new page.
   const imageBlock = engine.block.create('graphic');
   engine.block.setShape(imageBlock, engine.block.createShape('rect'));
   const fill = engine.block.createFill('image');
   engine.block.setSourceSet(fill, 'fill/image/sourceSet', [
-    { uri: bufferUri, width, height }
+    { uri: bufferUri, width: blockWidth, height: blockHeight }
   ]);
   engine.block.setFill(imageBlock, fill);
 
@@ -80,10 +92,10 @@ export async function appendTranslatedPage(
   engine.block.setWidthMode(imageBlock, 'Absolute');
   engine.block.setHeightMode(imageBlock, 'Absolute');
 
-  engine.block.setPositionX(imageBlock, 0);
-  engine.block.setPositionY(imageBlock, 0);
-  engine.block.setWidth(imageBlock, width);
-  engine.block.setHeight(imageBlock, height);
+  engine.block.setPositionX(imageBlock, blockX);
+  engine.block.setPositionY(imageBlock, blockY);
+  engine.block.setWidth(imageBlock, blockWidth);
+  engine.block.setHeight(imageBlock, blockHeight);
 
   engine.block.appendChild(newPage, imageBlock);
 }

@@ -376,6 +376,7 @@ async function runTranslation(args: RunArgs): Promise<void> {
           await appendTranslatedPage({
             cesdk,
             sourcePageId,
+            sourceBlockId: block,
             translated: r.value.blob,
             label: lang.label
           });
