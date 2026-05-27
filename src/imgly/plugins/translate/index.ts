@@ -37,3 +37,24 @@ export function setupTranslatePlugin(
 
 export { TRANSLATE_PANEL_ID, TRANSLATE_DOCK_ID } from './panel';
 export { TARGET_LANGUAGES, DEFAULT_GATEWAY_URL } from './providers';
+
+/**
+ * Register the `ly.img.ai.getToken` credential action eagerly.
+ *
+ * Call this BEFORE adding any IMG.LY AI plugin (`ImageGeneration`,
+ * `AiApps`, etc.) — those plugins call `fetchSchema` during their own
+ * `addPlugin` step, which immediately runs the action. If the action
+ * isn't registered yet, you'll see:
+ *   "Action 'ly.img.ai.getToken' is not registered".
+ *
+ * `setupTranslatePlugin` also registers the action (idempotently), so
+ * call this only when you need the registration earlier than the
+ * Translate panel itself.
+ */
+export function installTranslateCredentials(
+  cesdk: CreativeEditorSDK,
+  opts: { apiKey: string }
+): void {
+  setConfiguredApiKey(opts.apiKey);
+  installAiCredentials(cesdk);
+}

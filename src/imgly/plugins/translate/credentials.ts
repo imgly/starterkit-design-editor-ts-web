@@ -56,7 +56,19 @@ export function bearerFromTokenResult(token: AiTokenResult): string {
   return typeof token === 'string' ? token : token.dangerouslyExposeApiKey;
 }
 
-/** Register `ly.img.ai.getToken` on the cesdk instance. */
+let credentialsInstalled = false;
+
+/**
+ * Register `ly.img.ai.getToken` on the cesdk instance.
+ *
+ * Idempotent: safe to call multiple times. Necessary because the AI
+ * plugins fetch their model schemas during `addPlugin`, which means the
+ * action must already be registered before any plugin that uses it runs.
+ * Callers commonly invoke this once explicitly in editor wiring AND once
+ * from `setupTranslatePlugin`; the guard makes both paths safe.
+ */
 export function installAiCredentials(cesdk: CreativeEditorSDK): void {
+  if (credentialsInstalled) return;
+  credentialsInstalled = true;
   cesdk.actions.register('ly.img.ai.getToken', resolveAiToken);
 }

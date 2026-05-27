@@ -36,7 +36,10 @@ import {
   DEFAULT_GATEWAY_URL,
   instantiateGatewayProviders
 } from './plugins/translate/providers';
-import { setupTranslatePlugin } from './plugins/translate';
+import {
+  installTranslateCredentials,
+  setupTranslatePlugin
+} from './plugins/translate';
 
 // Re-export for external use
 export { DesignEditorConfig } from '../../design-editor/plugin';
@@ -85,6 +88,11 @@ export async function initDesignEditor(cesdk: CreativeEditorSDK) {
   const apiKey = import.meta.env.VITE_AI_API_KEY ?? '';
   const gatewayUrl =
     import.meta.env.VITE_AI_GATEWAY_URL ?? DEFAULT_GATEWAY_URL;
+
+  // Register `ly.img.ai.getToken` BEFORE adding the official AI plugin.
+  // That plugin fetches model schemas during `addPlugin`, which runs the
+  // action — registering it later throws "Action … is not registered".
+  installTranslateCredentials(cesdk, { apiKey });
 
   // Official AI image plugin — gives the editor a regular AI image-edit
   // dock entry, driven by a small curated set of gateway models.
