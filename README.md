@@ -104,7 +104,24 @@ and the image pre-selected.
 
 The dock contains exactly two entries: **Translate** and **Uploads**.
 
-### Models
+### Pipelines
+
+The upload screen lets the user pick between two translation pipelines:
+
+- **Direct** — the only implemented pipeline today. Sends the source image
+  and each target language to a gateway image-edit model; one gateway
+  request per language; returns a flat translated image with the text
+  baked into the bitmap.
+- **IMG.LY Magic Layers** — image-to-scene transformation that returns
+  editable scene files. Editable text, faster and cheaper for more than
+  two translations. *Coming soon* — until the gateway model ships, picking
+  this pipeline shows the Translate panel without the model selector and
+  with a disabled Translate button.
+
+The pipeline is fixed for the editor's lifetime. To switch, click Back to
+return to the upload screen and pick the other option.
+
+### Models (Direct pipeline)
 
 The Translate panel offers three image-edit models routed through the
 IMG.LY AI Gateway:
