@@ -116,6 +116,10 @@ function registerPanel(
         for (const lang of TARGET_LANGUAGES) {
           builder.Checkbox(`translate.lang.${lang.id}`, {
             inputLabel: lang.label,
+            // 'right' = label on the right side of the checkbox, i.e.
+            // checkbox sits on the left. CheckboxOptions extends
+            // InputOptions<boolean, 'left' | 'right'>; default is 'left'.
+            inputLabelPosition: 'right',
             value: !!checked.value[lang.id],
             setValue: (v: boolean) =>
               checked.setValue({ ...checked.value, [lang.id]: v })

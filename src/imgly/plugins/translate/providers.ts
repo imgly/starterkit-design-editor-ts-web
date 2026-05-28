@@ -16,6 +16,7 @@ export interface TargetLanguage {
 export const TARGET_LANGUAGES: TargetLanguage[] = [
   { id: 'de', label: 'German', promptName: 'German' },
   { id: 'en', label: 'English', promptName: 'English' },
+  { id: 'fr', label: 'French', promptName: 'French' },
   { id: 'es', label: 'Spanish', promptName: 'Spanish' },
   { id: 'ru', label: 'Russian', promptName: 'Russian' },
   { id: 'zh', label: 'Chinese (Simplified)', promptName: 'Simplified Chinese' }
