@@ -1,8 +1,9 @@
 /**
- * Translate plugin — public entry point (gateway edition).
+ * Translate plugin — public entry point.
  *
  * Registers the `ly.img.ai.getToken` credential action and wires the
- * custom Translate panel + dock entry.
+ * custom Translate panel. Dock placement is the host config's
+ * responsibility — see `photo-editor/ui/dock.ts`.
  */
 
 import type CreativeEditorSDK from '@cesdk/cesdk-js';
@@ -25,6 +26,7 @@ export function setupTranslatePlugin(
 ): void {
   const gatewayUrl = opts.gatewayUrl ?? DEFAULT_GATEWAY_URL;
   if (!opts.apiKey) {
+    // eslint-disable-next-line no-console
     console.warn(
       '[translate] No API key configured. Set VITE_AI_API_KEY in .env.'
     );
@@ -47,27 +49,3 @@ export {
   type OnboardingReason,
   type RenderOnboardingScreenOpts
 } from './onboarding';
-
-/**
- * Register the `ly.img.ai.getToken` credential action eagerly.
- *
- * Call this BEFORE adding any IMG.LY AI plugin (`ImageGeneration`,
- * `AiApps`, etc.) — those plugins call `fetchSchema` during their own
- * `addPlugin` step, which immediately runs the action. If the action
- * isn't registered yet, you'll see:
- *   "Action 'ly.img.ai.getToken' is not registered".
- *
- * `setupTranslatePlugin` also registers the action (idempotently), so
- * call this only when you need the registration earlier than the
- * Translate panel itself.
- */
-export function installTranslateCredentials(
-  cesdk: CreativeEditorSDK,
-  opts: { apiKey: string }
-): void {
-  // `setConfiguredApiKey` only sets the env-sourced key. A user-pasted
-  // key in `localStorage` (written by the onboarding screen in prod
-  // builds) takes precedence and is read dynamically by `resolveAiToken`.
-  setConfiguredApiKey(opts.apiKey);
-  installAiCredentials(cesdk);
-}

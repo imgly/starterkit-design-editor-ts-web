@@ -1,9 +1,14 @@
 /**
- * CE.SDK Photo Editor — Initialization Module
+ * CE.SDK Photo Translate Demo - Initialization Module
  *
- * Wires PhotoEditorConfig + asset sources + background removal + the custom
- * Translate plugin. The caller (src/index.ts) is responsible for creating
- * the CE.SDK instance and loading a scene (via `cesdk.createFromImage`).
+ * This module provides the main entry point for initializing the editor.
+ * Import and call `initPhotoEditor()` to configure a CE.SDK instance with
+ * the photo editor UI, background removal, and the custom Translate plugin.
+ *
+ * Scene loading is the caller's responsibility (src/index.ts uses the
+ * upload-screen helper `loadImageIntoScene`).
+ *
+ * @see https://img.ly/docs/cesdk/js/getting-started/
  */
 
 import type CreativeEditorSDK from '@cesdk/cesdk-js';
