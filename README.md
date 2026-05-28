@@ -1,12 +1,14 @@
-# Design Editor Starter Kit
+# Photo Translate Demo
 
-Create stunning graphics and layouts for your web app — add text, images, shapes, and export to multiple formats. Built with [CE.SDK](https://img.ly/creative-sdk) by [IMG.LY](https://img.ly), runs entirely in the browser with no server dependencies.
+Translate the text inside a photograph using IMG.LY's CE.SDK + the IMG.LY
+AI Gateway. Upload an image, click Continue, pick languages, get one new
+page per translation — all in the browser.
 
 <p>
-  <a href="https://img.ly/docs/cesdk/js/starterkits/design-editor-8unj9u/">Documentation</a>
+  <a href="https://img.ly/docs/cesdk/js/starterkits/photo-editor-fp8h8a/">Photo Editor docs</a>
 </p>
 
-![Design Editor starter kit showing a graphic design interface](./hero.webp)
+![Photo Translate Demo](./hero.webp)
 
 ## Getting Started
 
@@ -43,26 +45,6 @@ Open `http://localhost:5173` in your browser.
 
 ## Configuration
 
-### Loading Content
-
-Load content into the editor using one of these methods:
-
-```typescript
-// Create a blank design canvas
-await cesdk.actions.run('scene.create');
-
-// Load from a template archive
-await cesdk.loadFromArchiveURL('https://example.com/template.zip');
-
-// Load from a scene file
-await cesdk.loadFromURL('https://example.com/scene.json');
-
-// Load from an image
-await cesdk.createFromImage('https://example.com/image.jpg');
-```
-
-See [Open the Editor](https://img.ly/docs/cesdk/web/guides/open-editor/) for all loading methods.
-
 ### Theming
 
 ```typescript
@@ -85,33 +67,20 @@ See [Localization](https://img.ly/docs/cesdk/web/ui-styling/localization/) for s
 ## Architecture
 
 ```
-starterkit-design-editor-ts-web/
+photo-translate-demo/
 ├── src/
-│   ├── index.ts              # Application entry point
+│   ├── index.ts                          # State machine + editor bootstrap
 │   └── imgly/
-│       ├── index.ts          # Editor initialization
-│       ├── config/
-│       │   ├── plugin.ts         # Main plugin orchestration
-│       │   ├── actions.ts        # Load, Save, Export actions
-│       │   ├── features.ts       # Feature toggles
-│       │   ├── settings.ts       # Engine behavior
-│       │   ├── i18n.ts           # Internationalization
-│       │   └── ui/               # UI layout configuration
+│       ├── index.ts                      # initPhotoEditor
 │       └── plugins/
-│           └── background-removal.ts
-├── public/                   # Static assets
+│           ├── background-removal.ts
+│           ├── translate/                # Translate dock entry + panel
+│           └── upload/                   # Pre-editor upload screen
+├── photo-editor/                         # Photo Editor config (dock, nav, features)
+├── public/                               # Static assets
 ├── package.json
 └── vite.config.ts
 ```
-
-## Key Capabilities
-
-- **Text Editing** – Typography with fonts, styles, and effects
-- **Image Placement** – Add, crop, and arrange images
-- **Shapes & Graphics** – Vector shapes and design elements
-- **Templates** – Start from pre-built design templates
-- **Multi-Page** – Create multi-page documents
-- **Export** – PNG, JPEG, PDF with quality controls
 
 ## Prerequisites
 
@@ -126,59 +95,62 @@ starterkit-design-editor-ts-web/
 | Assets don't appear | Check `public/assets/` directory exists |
 | Watermark appears | Add your license key |
 
-## Documentation
+## How translation works
 
-For complete integration guides and API reference, visit the [Design Editor Documentation](https://img.ly/docs/cesdk/starterkits/design-editor/).
+The demo opens to a small upload screen (the editor is *not* the entry
+point). Drop a photo that contains text, click **Continue to editor**, and
+the photo opens in a Photo Editor UI with the Translate panel pre-opened
+and the image pre-selected.
 
-## Translate (AI Image Translation)
+The dock contains exactly two entries: **Translate** and **Uploads**.
 
-The Translate dock entry takes a selected image block with rasterized text
-and produces one new page per checked target language, each containing the
-image with text translated by an image-edit LLM.
+### Models
+
+The Translate panel offers three image-edit models routed through the
+IMG.LY AI Gateway:
+
+| Model           | Gateway id                       |
+|-----------------|----------------------------------|
+| Nano Banana Pro | `google/nano-banana-pro-edit`    |
+| GPT Image 2     | `openai/gpt-image-2-edit`        |
+| Seedream 4.5    | `bytedance/seedream-4.5-edit`    |
+
+The list is hard-coded in `src/imgly/plugins/translate/providers.ts`. To
+change it, edit `TRANSLATE_MODELS`.
 
 ### Configuration
 
-1. Copy `.env.example` to `.env` and set `VITE_AI_API_KEY` to an API key
-   from the [IMG.LY dashboard](https://img.ly/dashboard). (Optionally set
-   `VITE_AI_GATEWAY_URL` if you want to point at a non-production gateway.)
+1. Copy `.env.example` to `.env` and set `VITE_AI_API_KEY` to a key from the
+   [IMG.LY dashboard](https://img.ly/dashboard). (Optional:
+   `VITE_AI_GATEWAY_URL` to point at a non-production gateway.)
 2. Restart the dev server.
 
-The starter forwards the key to the gateway via `{ dangerouslyExposeApiKey }`,
-which exposes it to anyone with browser DevTools access. This is intentional
-for local development only. In production, return a short-lived JWT minted
-by your backend from the `ly.img.ai.getToken` action handler instead.
+If `VITE_AI_API_KEY` is unset, the app shows an onboarding screen instead
+of the upload screen.
 
-### Usage
+The starter forwards the key to the gateway via `{ dangerouslyExposeApiKey }`
+— exposed to anyone with DevTools access. **This is intentional for local
+development only.** In production, return a short-lived JWT minted by your
+backend from the `ly.img.ai.getToken` action handler instead.
 
-1. Open the editor and select an image block (one with a raster image fill).
-2. Click the **Translate** entry in the dock.
-3. Pick a model from the dropdown — populated dynamically from
-   `GET ${gatewayUrl}/v1/models?groupBy=capability` and filtered to
-   image-edit capable models.
-4. Check the target languages (German, English, Spanish, Russian, Chinese).
-5. Click **Translate**.
+### Using it
 
-For each checked language, a new page is appended to the document containing
-only the translated image. The source page is left unchanged. The whole batch
-is one undo step.
+1. Drop or pick a photo with text on the upload screen.
+2. Click **Continue to editor**. The photo opens with the Translate panel
+   already open and the image already selected.
+3. Pick a model (default: Nano Banana Pro). Check one or more target
+   languages (German, English, Spanish, Russian, Chinese).
+4. Click **Translate**. One new page per checked language is appended,
+   each containing the photo with its text translated. The whole batch is
+   one undo step.
 
-### Manual smoke checklist
+Use the **Back** button in the top-left of the navigation bar to return to
+the upload screen. Edits to the current scene are discarded — like a page
+reload.
 
-1. Open the editor, load the default marketing scene, select the image block.
-2. Open the Translate dock entry — panel opens, model dropdown populated,
-   no languages checked, Translate button disabled with inline hint.
-3. Check German, click Translate — one new page appended; original page
-   unchanged; ⌘Z / Ctrl+Z undoes the new page.
-4. Re-select source image, check three languages, click Translate — three
-   new pages appended in checked order.
-5. During a run, click Cancel — no pages appended; toast confirms. Note:
-   cancellation takes effect after the source image finishes uploading to
-   gateway storage (a current limitation of the IMG.LY gateway client's
-   `upload()` — it does not yet forward `AbortSignal`). For small demo
-   images this is near-instant.
-6. Unset `VITE_AI_API_KEY`, restart the dev server, click Translate — the
-   panel surfaces a clear "AI API key not configured" hint and the
-   Translate button is disabled.
+## Documentation
+
+For complete integration guides and API reference, visit the [Photo Editor Documentation](https://img.ly/docs/cesdk/starterkits/photo-editor/).
 
 ## License
 
@@ -186,4 +158,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-<p align="center">Built with <a href="https://img.ly/creative-sdk?utm_source=github&utm_medium=project&utm_campaign=starterkit-design-editor">CE.SDK</a> by <a href="https://img.ly?utm_source=github&utm_medium=project&utm_campaign=starterkit-design-editor">IMG.LY</a></p>
+<p align="center">Built with <a href="https://img.ly/creative-sdk?utm_source=github&utm_medium=project&utm_campaign=starterkit-photo-translate">CE.SDK</a> by <a href="https://img.ly?utm_source=github&utm_medium=project&utm_campaign=starterkit-photo-translate">IMG.LY</a></p>
