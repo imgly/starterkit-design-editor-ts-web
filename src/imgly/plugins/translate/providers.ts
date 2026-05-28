@@ -5,8 +5,6 @@
  * (Nano Banana Pro, GPT Image 2, Seedream 4.5). No live catalog fetch.
  */
 
-import { GatewayProvider as ImageGatewayProvider } from '@imgly/plugin-ai-image-generation-web/gateway';
-
 export const DEFAULT_GATEWAY_URL = 'https://gateway.img.ly';
 
 export interface TargetLanguage {
@@ -40,20 +38,3 @@ export const TRANSLATE_MODELS: readonly TranslateModel[] = [
   { id: 'openai/gpt-image-2-edit', label: 'GPT Image 2' },
   { id: 'bytedance/seedream-4.5-edit', label: 'Seedream 4.5' }
 ] as const;
-
-/**
- * @deprecated Removed in Task 8. Retained temporarily so the old AI image
- * plugin wiring in `src/imgly/index.ts` keeps building until that file is
- * rewritten.
- */
-export const CURATED_IMAGE_EDIT_MODEL_IDS = ['bfl/flux-2-edit'];
-
-/**
- * @deprecated Removed in Task 8 along with the AI image plugin call.
- */
-export function instantiateGatewayProviders(
-  modelIds: string[],
-  gatewayUrl: string
-) {
-  return modelIds.map((id) => ImageGatewayProvider(id, { gatewayUrl }));
-}

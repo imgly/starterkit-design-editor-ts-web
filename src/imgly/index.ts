@@ -1,10 +1,9 @@
 /**
- * CE.SDK Design Editor - Initialization Module
+ * CE.SDK Photo Editor — Initialization Module
  *
- * This module provides the main entry point for initializing the design editor.
- * Import and call `initDesignEditor()` to configure a CE.SDK instance for design editing.
- *
- * @see https://img.ly/docs/cesdk/js/getting-started/
+ * Wires PhotoEditorConfig + asset sources + background removal + the custom
+ * Translate plugin. The caller (src/index.ts) is responsible for creating
+ * the CE.SDK instance and loading a scene (via `cesdk.createFromImage`).
  */
 
 import type CreativeEditorSDK from '@cesdk/cesdk-js';
@@ -14,11 +13,9 @@ import {
   ImageColorsAssetSource,
   ColorPaletteAssetSource,
   CropPresetsAssetSource,
-  DemoAssetSources,
   EffectsAssetSource,
   FiltersAssetSource,
   PagePresetsAssetSource,
-  PremiumTemplatesAssetSource,
   StickerAssetSource,
   TextAssetSource,
   TextComponentAssetSource,
@@ -27,177 +24,56 @@ import {
   VectorShapeAssetSource
 } from '@cesdk/cesdk-js/plugins';
 
-// Configuration and plugins
-import { DesignEditorConfig } from '../../design-editor/plugin';
+import { PhotoEditorConfig } from '../../photo-editor/plugin';
 import { setupBackgroundRemovalPlugin } from './plugins/background-removal';
-import ImageGeneration from '@imgly/plugin-ai-image-generation-web';
-import {
-  CURATED_IMAGE_EDIT_MODEL_IDS,
-  DEFAULT_GATEWAY_URL,
-  instantiateGatewayProviders
-} from './plugins/translate/providers';
-import {
-  installTranslateCredentials,
-  setupTranslatePlugin
-} from './plugins/translate';
+import { setupTranslatePlugin } from './plugins/translate';
+import { DEFAULT_GATEWAY_URL } from './plugins/translate/providers';
 
-// Re-export for external use
-export { DesignEditorConfig } from '../../design-editor/plugin';
+export { PhotoEditorConfig } from '../../photo-editor/plugin';
 export { setupBackgroundRemovalPlugin } from './plugins/background-removal';
 
+export interface InitPhotoEditorOpts {
+  /** Click handler for the navigation-bar Back button. */
+  onBack: () => void;
+}
+
 /**
- * Initialize the CE.SDK Design Editor with a complete configuration.
- *
- * This function configures a CE.SDK instance with:
- * - Design editor UI configuration
- * - Background removal plugin
- * - Asset source plugins (templates, images, shapes, text, etc.)
- * - Actions dropdown in navigation bar
+ * Initialize the CE.SDK Photo Editor with this demo's configuration.
  *
  * @param cesdk - The CreativeEditorSDK instance to configure
+ * @param opts.onBack - Back-button handler (returns to the upload screen)
  */
-export async function initDesignEditor(cesdk: CreativeEditorSDK) {
-  // ============================================================================
-  // Configuration Plugin
-  // ============================================================================
+export async function initPhotoEditor(
+  cesdk: CreativeEditorSDK,
+  opts: InitPhotoEditorOpts
+): Promise<void> {
+  // Configuration plugin (dock, navigation bar, features, etc.).
+  await cesdk.addPlugin(new PhotoEditorConfig({ onBack: opts.onBack }));
 
-  // Add the design editor configuration plugin
-  // This sets up the UI, features, settings, and i18n for design editing
-  await cesdk.addPlugin(new DesignEditorConfig());
-
-  // ============================================================================
-  // Theme and Locale
-  // ============================================================================
-
-  // Configure appearance: 'light' | 'dark' | 'system'
-  // cesdk.setTheme('dark');
-  // cesdk.setLocale('en');
-
-  // ============================================================================
-  // Background Removal Plugin
-  // ============================================================================
-
-  // Setup AI-powered background removal
-  // Requires: npm install @imgly/background-removal onnxruntime-web
+  // Background removal (works on the loaded photo).
   setupBackgroundRemovalPlugin(cesdk);
 
-  // ============================================================================
-  // Translate Plugin (custom) + AI Image Generation Plugin (official)
-  // ============================================================================
-
+  // Translate plugin (dock entry + panel + AI gateway credentials).
   const apiKey = import.meta.env.VITE_AI_API_KEY ?? '';
   const gatewayUrl =
     import.meta.env.VITE_AI_GATEWAY_URL ?? DEFAULT_GATEWAY_URL;
-
-  // Register `ly.img.ai.getToken` BEFORE adding the official AI plugin.
-  // That plugin fetches model schemas during `addPlugin`, which runs the
-  // action — registering it later throws "Action … is not registered".
-  installTranslateCredentials(cesdk, { apiKey });
-
-  // Official AI image plugin — gives the editor a regular AI image-edit
-  // dock entry, driven by a small curated set of gateway models.
-  if (apiKey) {
-    await cesdk.addPlugin(
-      ImageGeneration({
-        providers: {
-          image2image: instantiateGatewayProviders(
-            CURATED_IMAGE_EDIT_MODEL_IDS,
-            gatewayUrl
-          )
-        }
-      })
-    );
-  }
-
-  // Custom Translate plugin — adds the dock entry + side panel that
-  // produces one new page per checked target language.
   setupTranslatePlugin(cesdk, { apiKey, gatewayUrl });
 
-  // ============================================================================
-  // Asset Source Plugins
-  // ============================================================================
-
-  // Asset source plugins provide built-in asset libraries
-
-  // Blur presets for blur effects
+  // Asset source plugins — same set as the photo starter kit, plus the
+  // image-upload source the Uploads dock entry points at.
   await cesdk.addPlugin(new BlurAssetSource());
-
-  // Color palettes for design
   await cesdk.addPlugin(new ImageColorsAssetSource());
   await cesdk.addPlugin(new ColorPaletteAssetSource());
-
-  // Crop presets (aspect ratios)
   await cesdk.addPlugin(new CropPresetsAssetSource());
-
-  // Local upload sources (images)
-  await cesdk.addPlugin(
-    new UploadAssetSources({
-      include: ['ly.img.image.upload']
-    })
-  );
-
-  // Demo assets (templates, images)
-  await cesdk.addPlugin(
-    new DemoAssetSources({
-      include: [
-        'ly.img.templates.blank.*',
-        'ly.img.templates.presentation.*',
-        'ly.img.templates.print.*',
-        'ly.img.templates.social.*',
-        'ly.img.image.*'
-      ]
-    })
-  );
-
-  // Visual effects (adjustments, vignette, etc.)
   await cesdk.addPlugin(new EffectsAssetSource());
-
-  // Photo filters (LUT, duotone)
   await cesdk.addPlugin(new FiltersAssetSource());
-
-  // Page format presets (A4, Letter, social media sizes)
   await cesdk.addPlugin(new PagePresetsAssetSource());
-
-  // Sticker assets
   await cesdk.addPlugin(new StickerAssetSource());
-
-  // Text presets (headlines, body text styles)
   await cesdk.addPlugin(new TextAssetSource());
-
-  // Text components (pre-designed text layouts)
   await cesdk.addPlugin(new TextComponentAssetSource());
-
-  // Typeface/font assets
   await cesdk.addPlugin(new TypefaceAssetSource());
-
-  // Vector shapes (rectangles, circles, arrows, etc.)
   await cesdk.addPlugin(new VectorShapeAssetSource());
-
-  // Premium templates
   await cesdk.addPlugin(
-    new PremiumTemplatesAssetSource({
-      include: ['ly.img.templates.premium.*']
-    })
-  );
-
-  // ============================================================================
-  // Navigation Bar Actions
-  // ============================================================================
-
-  // Configure the actions dropdown in the navigation bar
-  cesdk.ui.insertOrderComponent(
-    { in: 'ly.img.navigation.bar', position: 'end' },
-    {
-      id: 'ly.img.actions.navigationBar',
-      children: [
-        'ly.img.saveScene.navigationBar',
-        'ly.img.exportImage.navigationBar',
-        'ly.img.exportPDF.navigationBar',
-        'ly.img.exportScene.navigationBar',
-        'ly.img.exportArchive.navigationBar',
-        'ly.img.importScene.navigationBar',
-        'ly.img.importArchive.navigationBar'
-      ]
-    }
+    new UploadAssetSources({ include: ['ly.img.image.upload'] })
   );
 }
