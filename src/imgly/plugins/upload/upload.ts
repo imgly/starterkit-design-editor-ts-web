@@ -9,7 +9,7 @@
 
 import './upload.css';
 
-import { DEFAULT_TRANSLATE_PIPELINE } from '../translate';
+import { DEFAULT_TRANSLATE_PIPELINE, TRANSLATE_PIPELINES } from '../translate';
 import type { TranslatePipeline } from '../translate';
 
 export interface RenderUploadScreenOpts {
@@ -52,6 +52,57 @@ export function renderUploadScreen(
   const errorMessage = el('p', 'tr-up-error');
   errorMessage.hidden = true;
   card.appendChild(errorMessage);
+
+  // Pipeline picker — radio group below the dropzone.
+  const pipelineGroup = el('div', 'tr-up-pipeline') as HTMLDivElement;
+  pipelineGroup.setAttribute('role', 'radiogroup');
+  pipelineGroup.setAttribute('aria-label', 'Translation pipeline');
+  const pipelineTitle = el('div', 'tr-up-pipeline-title');
+  pipelineTitle.textContent = 'Translation pipeline';
+  pipelineGroup.appendChild(pipelineTitle);
+
+  let selectedPipeline: TranslatePipeline = DEFAULT_TRANSLATE_PIPELINE;
+  const pipelineOptions: {
+    spec: typeof TRANSLATE_PIPELINES[number];
+    option: HTMLLabelElement;
+  }[] = [];
+
+  for (const spec of TRANSLATE_PIPELINES) {
+    const option = el('label', 'tr-up-pipeline-option') as HTMLLabelElement;
+    const radio = el('input', 'tr-up-pipeline-radio') as HTMLInputElement;
+    radio.type = 'radio';
+    radio.name = 'tr-up-pipeline';
+    radio.value = spec.id;
+    radio.checked = spec.id === selectedPipeline;
+    if (radio.checked) option.classList.add('tr-up-pipeline-option--checked');
+    radio.addEventListener('change', () => {
+      if (!radio.checked) return;
+      selectedPipeline = spec.id;
+      // Toggle the highlight class on all options. (Avoids relying on the
+      // CSS :has() selector, which Firefox only shipped in v121 — below
+      // the README's stated Firefox 115+ floor.)
+      for (const p of pipelineOptions) {
+        p.option.classList.toggle(
+          'tr-up-pipeline-option--checked',
+          p.spec.id === selectedPipeline
+        );
+      }
+    });
+
+    const text = el('span', 'tr-up-pipeline-text');
+    const label = el('span', 'tr-up-pipeline-label');
+    label.textContent = spec.label;
+    const desc = el('span', 'tr-up-pipeline-desc');
+    desc.textContent = spec.description;
+    text.appendChild(label);
+    text.appendChild(desc);
+
+    option.appendChild(radio);
+    option.appendChild(text);
+    pipelineGroup.appendChild(option);
+    pipelineOptions.push({ spec, option });
+  }
+  card.appendChild(pipelineGroup);
 
   // Continue button.
   const continueBtn = el(
@@ -155,8 +206,7 @@ export function renderUploadScreen(
     if (!selectedFile) return;
     // Don't revoke previewURL here — the editor still needs to read the
     // bytes; the next renderUploadScreen call clears via root.innerHTML.
-    // Task 3 replaces DEFAULT_TRANSLATE_PIPELINE with the radio's value.
-    opts.onContinue(selectedFile, DEFAULT_TRANSLATE_PIPELINE);
+    opts.onContinue(selectedFile, selectedPipeline);
   });
 
   // Initial state.
