@@ -87,6 +87,22 @@ async function mountEditor(
   const imageBlock = findFirstImageBlock(cesdk.engine);
   if (imageBlock != null) cesdk.engine.block.select(imageBlock);
   cesdk.ui.openPanel(TRANSLATE_PANEL_ID);
+
+  // Fit-to-page with a comfortable margin. createFromImage's default
+  // zoom fills the canvas edge-to-edge; we want some breathing room so
+  // the page edges read as a page, not as the canvas itself. Zoom after
+  // openPanel so the calculation uses the narrowed canvas width (panel
+  // already eats space on the right).
+  const [firstPage] = cesdk.engine.scene.getPages();
+  if (firstPage != null) {
+    // requestAnimationFrame yields one frame so the panel's DOM has
+    // settled and CE.SDK's camera knows the new viewport size before
+    // zoomToBlock computes the fit.
+    await new Promise<void>((resolve) =>
+      requestAnimationFrame(() => resolve())
+    );
+    await cesdk.engine.scene.zoomToBlock(firstPage, { padding: 80 });
+  }
 }
 
 function navigateBackToUpload(
