@@ -25,9 +25,17 @@ import {
 
 const ASSET_LIBRARY_PANEL_ID = '//ly.img.panel/assetLibrary';
 
-/** Payload that identifies the Uploads asset-library panel. */
+/**
+ * Payload that identifies the Uploads asset-library panel.
+ *
+ * `ly.img.upload` is the **asset library entry id** (UI layer) that
+ * UploadAssetSources binds the `ly.img.image.upload` source to. Using
+ * the source id here would render an empty panel without the "Add"
+ * button — the asset library only renders upload controls for entries
+ * it recognises as upload-enabled.
+ */
 const UPLOAD_PANEL_PAYLOAD = {
-  entries: ['ly.img.image.upload'],
+  entries: ['ly.img.upload'],
   title: 'libraries.ly.img.upload.label'
 };
 
@@ -59,7 +67,7 @@ export function setupDock(cesdk: CreativeEditorSDK): void {
       key: 'ly.img.upload',
       icon: '@imgly/Upload',
       label: 'libraries.ly.img.upload.label',
-      entries: ['ly.img.image.upload'],
+      entries: UPLOAD_PANEL_PAYLOAD.entries,
       isSelected: () =>
         ui.isPanelOpen(ASSET_LIBRARY_PANEL_ID, {
           payload: UPLOAD_PANEL_PAYLOAD

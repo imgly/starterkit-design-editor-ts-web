@@ -64,8 +64,19 @@ export async function initPhotoEditor(
     import.meta.env.VITE_AI_GATEWAY_URL ?? DEFAULT_GATEWAY_URL;
   setupTranslatePlugin(cesdk, { apiKey, gatewayUrl });
 
-  // Asset source plugins — same set as the photo starter kit, plus the
-  // image-upload source the Uploads dock entry points at.
+  // Asset source plugins.
+  //
+  // UploadAssetSources is added FIRST so the Uploads dock entry's
+  // `ly.img.upload` library entry is bound to the `ly.img.image.upload`
+  // source before the user can click the dock. The other plugins fetch
+  // CDN JSON in their initialize() — registering them after means the
+  // dock isn't waiting on those network round-trips to enable uploads.
+  await cesdk.addPlugin(
+    new UploadAssetSources({ include: ['ly.img.image.upload'] })
+  );
+
+  // Remaining asset source plugins — same set as the photo starter kit.
+  // These power inspector tools (Filters / Effects / Crop / etc.).
   await cesdk.addPlugin(new BlurAssetSource());
   await cesdk.addPlugin(new ImageColorsAssetSource());
   await cesdk.addPlugin(new ColorPaletteAssetSource());
@@ -78,7 +89,4 @@ export async function initPhotoEditor(
   await cesdk.addPlugin(new TextComponentAssetSource());
   await cesdk.addPlugin(new TypefaceAssetSource());
   await cesdk.addPlugin(new VectorShapeAssetSource());
-  await cesdk.addPlugin(
-    new UploadAssetSources({ include: ['ly.img.image.upload'] })
-  );
 }
