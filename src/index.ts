@@ -19,7 +19,10 @@ import {
   setConfiguredApiKey,
   TRANSLATE_PANEL_ID
 } from './imgly/plugins/translate';
-import { renderUploadScreen } from './imgly/plugins/upload';
+import {
+  loadImageIntoScene,
+  renderUploadScreen
+} from './imgly/plugins/upload';
 
 setConfiguredApiKey(import.meta.env.VITE_AI_API_KEY ?? '');
 
@@ -38,15 +41,14 @@ function showCurrentScreen(root: HTMLDivElement): void {
   }
   renderUploadScreen(root, {
     onContinue: (file) => {
-      const objectURL = URL.createObjectURL(file);
-      void mountEditor(root, objectURL);
+      void mountEditor(root, file);
     }
   });
 }
 
 async function mountEditor(
   root: HTMLDivElement,
-  objectURL: string
+  file: File
 ): Promise<void> {
   root.innerHTML = '';
 
@@ -58,7 +60,6 @@ async function mountEditor(
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error('Failed to initialize CE.SDK:', err);
-    URL.revokeObjectURL(objectURL);
     renderOnboardingScreen(root, { reason: 'invalid' });
     return;
   }
@@ -70,7 +71,7 @@ async function mountEditor(
   });
 
   try {
-    await cesdk.createFromImage(objectURL);
+    await loadImageIntoScene(cesdk, file);
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error('Failed to load image into editor:', err);
@@ -79,11 +80,9 @@ async function mountEditor(
       message: 'Could not load image — try a different file.',
       duration: 'medium'
     });
-    URL.revokeObjectURL(objectURL);
     navigateBackToUpload(root, cesdk);
     return;
   }
-  URL.revokeObjectURL(objectURL);
 
   const imageBlock = findFirstImageBlock(cesdk.engine);
   if (imageBlock != null) cesdk.engine.block.select(imageBlock);

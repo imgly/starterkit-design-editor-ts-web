@@ -6,3 +6,4 @@ export {
   renderUploadScreen,
   type RenderUploadScreenOpts
 } from './upload';
+export { loadImageIntoScene } from './scene';
