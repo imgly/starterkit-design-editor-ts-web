@@ -1,16 +1,17 @@
 /**
  * Dock Configuration — Translate + Uploads only.
  *
- * The Translate entry follows the same structured pattern the photo
- * starter kit uses for Crop/Filter/etc: it borrows the
- * `ly.img.assetLibrary.dock` shell with `entries: []`, then provides its
+ * Both entries are structured `ly.img.assetLibrary.dock` items with their
  * own `isSelected` predicate (reactive — re-evaluated by CE.SDK on every
- * dock render) and `onClick` that toggles the Translate panel.
+ * dock render) and `onClick` that closes other panels before opening
+ * its own. This matches the photo starter kit's Crop / Filter / Text /
+ * Shapes / Stickers pattern, and ensures exactly one dock item is active
+ * at a time.
  *
- * Using `isSelected: () => …` instead of registering a custom
- * `builder.Button` is what makes the "active" border de-activate when the
- * user clicks another dock entry: CE.SDK closes the previous panel,
- * isSelected re-evaluates to false, and the button repaints.
+ * The default `ly.img.assetLibrary.dock` behavior (used when you only
+ * supply `entries`) opens the asset library panel without closing other
+ * open panels, which lets two dock entries appear active at once.
+ * Custom onClick + isSelected fixes that.
  *
  * @see https://img.ly/docs/cesdk/js/user-interface/customization/dock-cb916c/
  */
@@ -21,6 +22,14 @@ import {
   TRANSLATE_ICON_ID,
   TRANSLATE_PANEL_ID
 } from '../../src/imgly/plugins/translate';
+
+const ASSET_LIBRARY_PANEL_ID = '//ly.img.panel/assetLibrary';
+
+/** Payload that identifies the Uploads asset-library panel. */
+const UPLOAD_PANEL_PAYLOAD = {
+  entries: ['ly.img.image.upload'],
+  title: 'libraries.ly.img.upload.label'
+};
 
 export function setupDock(cesdk: CreativeEditorSDK): void {
   const { engine, ui } = cesdk;
@@ -50,7 +59,25 @@ export function setupDock(cesdk: CreativeEditorSDK): void {
       key: 'ly.img.upload',
       icon: '@imgly/Upload',
       label: 'libraries.ly.img.upload.label',
-      entries: ['ly.img.image.upload']
+      entries: ['ly.img.image.upload'],
+      isSelected: () =>
+        ui.isPanelOpen(ASSET_LIBRARY_PANEL_ID, {
+          payload: UPLOAD_PANEL_PAYLOAD
+        }),
+      onClick: () => {
+        if (
+          ui.isPanelOpen(ASSET_LIBRARY_PANEL_ID, {
+            payload: UPLOAD_PANEL_PAYLOAD
+          })
+        ) {
+          ui.closePanel(ASSET_LIBRARY_PANEL_ID);
+          return;
+        }
+        ui.closePanel('*');
+        ui.openPanel(ASSET_LIBRARY_PANEL_ID, {
+          payload: UPLOAD_PANEL_PAYLOAD
+        });
+      }
     }
   ]);
 }
