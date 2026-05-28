@@ -48,20 +48,29 @@
 
 import type CreativeEditorSDK from '@cesdk/cesdk-js';
 
+export interface SetupNavigationBarOpts {
+  /** Called when the user clicks the Back button. */
+  onBack: () => void;
+}
+
 /**
  * Configure the navigation bar layout and behavior.
  *
  * @param cesdk - The CreativeEditorSDK instance to configure
+ * @param opts.onBack - Click handler for the leftmost Back button.
  */
 export function setupNavigationBar(
   cesdk: CreativeEditorSDK,
-  _opts: { onBack: () => void }
+  opts: SetupNavigationBarOpts
 ): void {
-  // #region Navigation Bar Order
   cesdk.ui.setComponentOrder({ in: 'ly.img.navigation.bar' }, [
     // ============================
-    // Left Section - Document Settings & History
+    // Left Section - Back + Document Settings & History
     // ============================
+    {
+      id: 'ly.img.back.navigationBar',
+      onClick: () => opts.onBack()
+    },
     'ly.img.documentSettings.navigationBar',
     'ly.img.undoRedo.navigationBar',
 
@@ -78,5 +87,4 @@ export function setupNavigationBar(
     'ly.img.zoom.navigationBar',
     'ly.img.preview.navigationBar'
   ]);
-  // #endregion
 }
