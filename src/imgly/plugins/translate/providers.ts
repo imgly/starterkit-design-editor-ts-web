@@ -1,24 +1,17 @@
 /**
  * Translate feature — provider + language constants.
  *
- * After the gateway migration this module no longer hard-codes a list of
- * provider/model pairs: the dropdown is populated dynamically from the
- * gateway catalog (see `catalog.ts`). What stays here is the gateway URL
- * default, the target-language list, and a small helper for instantiating
- * `ImageGatewayProvider` instances from a list of model ids.
+ * The Translate panel offers a fixed allow-list of three image-edit models
+ * (Nano Banana Pro, GPT Image 2, Seedream 4.5). No live catalog fetch.
  */
 
 import { GatewayProvider as ImageGatewayProvider } from '@imgly/plugin-ai-image-generation-web/gateway';
 
 export const DEFAULT_GATEWAY_URL = 'https://gateway.img.ly';
 
-/** Target languages the Translate panel offers. */
 export interface TargetLanguage {
-  /** Stable id (also the locale tag we hand to the LLM). */
   id: string;
-  /** Label shown in the checkbox + the new page's name. */
   label: string;
-  /** English name of the language used inside the prompt. */
   promptName: string;
 }
 
@@ -30,18 +23,33 @@ export const TARGET_LANGUAGES: TargetLanguage[] = [
   { id: 'zh', label: 'Chinese (Simplified)', promptName: 'Simplified Chinese' }
 ];
 
+export interface TranslateModel {
+  /** Gateway model id (passed to `client.generate`). */
+  id: string;
+  /** Label shown in the dropdown. */
+  label: string;
+}
+
 /**
- * Curated fallback model ids for the official AI plugin's image-edit dock
- * entry. The Translate panel itself uses the live gateway catalog instead
- * — this list is only what the AI plugin registers at startup so its
- * dropdown is non-empty before any UI is opened.
+ * Fixed allow-list of image-edit models offered by the Translate panel.
+ * The order here is the dropdown order; the first entry is the default
+ * selection.
+ */
+export const TRANSLATE_MODELS: readonly TranslateModel[] = [
+  { id: 'google/nano-banana-pro-edit', label: 'Nano Banana Pro' },
+  { id: 'openai/gpt-image-2-edit', label: 'GPT Image 2' },
+  { id: 'bytedance/seedream-4.5-edit', label: 'Seedream 4.5' }
+] as const;
+
+/**
+ * @deprecated Removed in Task 8. Retained temporarily so the old AI image
+ * plugin wiring in `src/imgly/index.ts` keeps building until that file is
+ * rewritten.
  */
 export const CURATED_IMAGE_EDIT_MODEL_IDS = ['bfl/flux-2-edit'];
 
 /**
- * Build one `ImageGatewayProvider` per model id. Used in
- * `src/imgly/index.ts` to register the AI plugin's `image2image`
- * providers (the bonus regular image-edit dock entry).
+ * @deprecated Removed in Task 8 along with the AI image plugin call.
  */
 export function instantiateGatewayProviders(
   modelIds: string[],
