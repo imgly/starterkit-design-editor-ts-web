@@ -9,8 +9,11 @@
 
 import './upload.css';
 
+import { DEFAULT_TRANSLATE_PIPELINE } from '../translate';
+import type { TranslatePipeline } from '../translate';
+
 export interface RenderUploadScreenOpts {
-  onContinue: (file: File) => void;
+  onContinue: (file: File, pipeline: TranslatePipeline) => void;
 }
 
 export function renderUploadScreen(
@@ -152,7 +155,8 @@ export function renderUploadScreen(
     if (!selectedFile) return;
     // Don't revoke previewURL here — the editor still needs to read the
     // bytes; the next renderUploadScreen call clears via root.innerHTML.
-    opts.onContinue(selectedFile);
+    // Task 3 replaces DEFAULT_TRANSLATE_PIPELINE with the radio's value.
+    opts.onContinue(selectedFile, DEFAULT_TRANSLATE_PIPELINE);
   });
 
   // Initial state.

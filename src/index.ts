@@ -20,6 +20,7 @@ import {
   setConfiguredApiKey,
   TRANSLATE_PANEL_ID
 } from './imgly/plugins/translate';
+import type { TranslatePipeline } from './imgly/plugins/translate';
 import {
   loadImageIntoScene,
   renderUploadScreen
@@ -41,15 +42,16 @@ function showCurrentScreen(root: HTMLDivElement): void {
     return;
   }
   renderUploadScreen(root, {
-    onContinue: (file) => {
-      void mountEditor(root, file);
+    onContinue: (file, pipeline) => {
+      void mountEditor(root, file, pipeline);
     }
   });
 }
 
 async function mountEditor(
   root: HTMLDivElement,
-  file: File
+  file: File,
+  pipeline: TranslatePipeline
 ): Promise<void> {
   root.innerHTML = '';
 
@@ -70,7 +72,8 @@ async function mountEditor(
   (window as any).cesdk = cesdk;
 
   await initPhotoEditor(cesdk, {
-    onBack: () => navigateBackToUpload(root, cesdk)
+    onBack: () => navigateBackToUpload(root, cesdk),
+    pipeline
   });
 
   try {

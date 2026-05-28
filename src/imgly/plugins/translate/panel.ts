@@ -7,6 +7,7 @@
 import type CreativeEditorSDK from '@cesdk/cesdk-js';
 
 import { TARGET_LANGUAGES, TRANSLATE_MODELS } from './providers';
+import type { TranslatePipeline } from './providers';
 import { translateImage, TranslateError } from './translate';
 import { appendTranslatedPage } from './pages';
 
@@ -25,6 +26,8 @@ export interface SetupTranslatePanelOpts {
   gatewayUrl: string;
   /** Empty string means "not configured" — panel surfaces a clear toast. */
   apiKey: string;
+  /** Pipeline chosen on the upload screen. */
+  pipeline: TranslatePipeline;
 }
 
 export function setupTranslatePanel(

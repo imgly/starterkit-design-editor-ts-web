@@ -32,6 +32,7 @@ import {
 import { PhotoEditorConfig } from '../../photo-editor/plugin';
 import { setupBackgroundRemovalPlugin } from './plugins/background-removal';
 import { setupTranslatePlugin } from './plugins/translate';
+import type { TranslatePipeline } from './plugins/translate';
 import { DEFAULT_GATEWAY_URL } from './plugins/translate/providers';
 
 export { PhotoEditorConfig } from '../../photo-editor/plugin';
@@ -40,6 +41,8 @@ export { setupBackgroundRemovalPlugin } from './plugins/background-removal';
 export interface InitPhotoEditorOpts {
   /** Click handler for the navigation-bar Back button. */
   onBack: () => void;
+  /** Pipeline chosen on the upload screen. */
+  pipeline: TranslatePipeline;
 }
 
 /**
@@ -62,7 +65,7 @@ export async function initPhotoEditor(
   const apiKey = import.meta.env.VITE_AI_API_KEY ?? '';
   const gatewayUrl =
     import.meta.env.VITE_AI_GATEWAY_URL ?? DEFAULT_GATEWAY_URL;
-  setupTranslatePlugin(cesdk, { apiKey, gatewayUrl });
+  setupTranslatePlugin(cesdk, { apiKey, gatewayUrl, pipeline: opts.pipeline });
 
   // Asset source plugins.
   //

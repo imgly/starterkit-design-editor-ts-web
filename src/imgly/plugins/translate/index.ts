@@ -11,6 +11,7 @@ import type CreativeEditorSDK from '@cesdk/cesdk-js';
 import { setupTranslatePanel } from './panel';
 import { installAiCredentials, setConfiguredApiKey } from './credentials';
 import { DEFAULT_GATEWAY_URL } from './providers';
+import type { TranslatePipeline } from './providers';
 import { configureTranslate } from './translate';
 
 export interface SetupTranslatePluginOpts {
@@ -18,6 +19,8 @@ export interface SetupTranslatePluginOpts {
   apiKey: string;
   /** Gateway URL. Defaults to https://gateway.img.ly. */
   gatewayUrl?: string;
+  /** Pipeline chosen on the upload screen. */
+  pipeline: TranslatePipeline;
 }
 
 export function setupTranslatePlugin(
@@ -34,7 +37,11 @@ export function setupTranslatePlugin(
   setConfiguredApiKey(opts.apiKey);
   installAiCredentials(cesdk);
   configureTranslate({ gatewayUrl });
-  setupTranslatePanel(cesdk, { gatewayUrl, apiKey: opts.apiKey });
+  setupTranslatePanel(cesdk, {
+    gatewayUrl,
+    apiKey: opts.apiKey,
+    pipeline: opts.pipeline
+  });
 }
 
 export {
