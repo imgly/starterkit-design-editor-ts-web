@@ -53,7 +53,10 @@ import type CreativeEditorSDK from '@cesdk/cesdk-js';
  *
  * @param cesdk - The CreativeEditorSDK instance to configure
  */
-export function setupNavigationBar(cesdk: CreativeEditorSDK): void {
+export function setupNavigationBar(
+  cesdk: CreativeEditorSDK,
+  _opts: { onBack: () => void }
+): void {
   // #region Navigation Bar Order
   cesdk.ui.setComponentOrder({ in: 'ly.img.navigation.bar' }, [
     // ============================

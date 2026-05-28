@@ -6,6 +6,7 @@
 
 import type CreativeEditorSDK from '@cesdk/cesdk-js';
 
+import type { PhotoEditorConfigOpts } from '../plugin';
 import { setupCanvas } from './canvas';
 import { setupComponents } from './components';
 import { setupDock } from './dock';
@@ -13,21 +14,18 @@ import { setupInspectorBar } from './inspectorBar';
 import { setupNavigationBar } from './navigationBar';
 import { setupPanels } from './panel';
 
-/**
- * Set up all UI components for the photo editor.
- *
- * @param cesdk - The CreativeEditorSDK instance to configure
- */
-export function setupUI(cesdk: CreativeEditorSDK): void {
-  setupPanels(cesdk); // Panel positions first (affects layout)
-  setupComponents(cesdk); // Custom components (crop, adjust, filter, effects)
-  setupNavigationBar(cesdk); // Top bar
-  setupCanvas(cesdk); // Canvas bar and context menu
-  setupInspectorBar(cesdk); // Contextual toolbar
-  setupDock(cesdk); // Left side photo tools and asset panel
+export function setupUI(
+  cesdk: CreativeEditorSDK,
+  opts: PhotoEditorConfigOpts
+): void {
+  setupPanels(cesdk);
+  setupComponents(cesdk);
+  setupNavigationBar(cesdk, opts);
+  setupCanvas(cesdk);
+  setupInspectorBar(cesdk);
+  setupDock(cesdk);
 }
 
-// Re-export for selective use
 export {
   setupCanvas,
   setupComponents,
