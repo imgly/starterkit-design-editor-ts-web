@@ -15,8 +15,8 @@ page per translation — all in the browser.
 ### Clone the Repository
 
 ```bash
-git clone https://github.com/imgly/starterkit-design-editor-ts-web.git
-cd starterkit-design-editor-ts-web
+git clone <repository-url>
+cd <repository-directory>
 ```
 
 ### Install Dependencies

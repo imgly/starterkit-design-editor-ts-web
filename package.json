@@ -1,7 +1,7 @@
 {
-  "name": "starterkit-design-editor",
+  "name": "starterkit-photo-translate",
   "version": "1.0.0",
-  "description": "CE.SDK Design Editor Starterkit",
+  "description": "CE.SDK Photo Translate Demo",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
