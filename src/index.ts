@@ -65,7 +65,9 @@ async function mountEditor(
     return;
   }
 
-  (window as unknown as { cesdk: CreativeEditorSDK }).cesdk = cesdk;
+  // Debug access (remove in production).
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (window as any).cesdk = cesdk;
 
   await initPhotoEditor(cesdk, {
     onBack: () => navigateBackToUpload(root, cesdk)
@@ -111,7 +113,8 @@ function navigateBackToUpload(
   cesdk: CreativeEditorSDK
 ): void {
   cesdk.dispose();
-  delete (window as unknown as { cesdk?: unknown }).cesdk;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  delete (window as any).cesdk;
   showCurrentScreen(root);
 }
 
