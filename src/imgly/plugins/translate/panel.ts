@@ -146,6 +146,10 @@ function registerPanel(
 }
 
 function registerDockEntry(cesdk: CreativeEditorSDK): void {
+  // Component definition only — placement in the dock is the host
+  // configuration's responsibility (see photo-editor/ui/dock.ts), which
+  // lists TRANSLATE_DOCK_ID explicitly. Calling insertOrderComponent here
+  // would add a second copy.
   cesdk.ui.registerComponent(TRANSLATE_DOCK_ID, ({ builder }) => {
     builder.Button(`${TRANSLATE_DOCK_ID}.button`, {
       label: 'libraries.ly.img.translate.label',
@@ -160,11 +164,6 @@ function registerDockEntry(cesdk: CreativeEditorSDK): void {
       }
     });
   });
-
-  cesdk.ui.insertOrderComponent(
-    { in: 'ly.img.dock', position: 'start' },
-    TRANSLATE_DOCK_ID
-  );
 }
 
 function pickImageFillBlock(
