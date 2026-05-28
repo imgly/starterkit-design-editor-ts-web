@@ -35,7 +35,7 @@ export function setupTranslatePlugin(
   setupTranslatePanel(cesdk, { gatewayUrl, apiKey: opts.apiKey });
 }
 
-export { TRANSLATE_PANEL_ID, TRANSLATE_DOCK_ID } from './panel';
+export { TRANSLATE_PANEL_ID, TRANSLATE_ICON_ID } from './panel';
 export { TARGET_LANGUAGES, DEFAULT_GATEWAY_URL } from './providers';
 export { getApiKey, setConfiguredApiKey } from './credentials';
 export {

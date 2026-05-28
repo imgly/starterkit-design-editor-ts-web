@@ -11,9 +11,8 @@ import { translateImage, TranslateError } from './translate';
 import { appendTranslatedPage } from './pages';
 
 export const TRANSLATE_PANEL_ID = '//ly.img.panel/translate';
-export const TRANSLATE_DOCK_ID = 'ly.img.translate.dock';
 const TRANSLATE_ICON_SET_ID = 'ly.img.translate';
-const TRANSLATE_ICON_ID = `@${TRANSLATE_ICON_SET_ID}/translate`;
+export const TRANSLATE_ICON_ID = `@${TRANSLATE_ICON_SET_ID}/translate`;
 
 const TRANSLATE_ICON_SVG = `
 <svg xmlns="http://www.w3.org/2000/svg">
@@ -35,7 +34,9 @@ export function setupTranslatePanel(
   cesdk.ui.addIconSet(TRANSLATE_ICON_SET_ID, TRANSLATE_ICON_SVG);
   registerTranslations(cesdk);
   registerPanel(cesdk, opts);
-  registerDockEntry(cesdk);
+  // Dock placement is the host config's responsibility (see
+  // photo-editor/ui/dock.ts), which uses a structured dock entry with a
+  // reactive isSelected predicate.
 }
 
 function registerTranslations(cesdk: CreativeEditorSDK): void {
@@ -140,27 +141,6 @@ function registerPanel(
             });
           }
         });
-      }
-    });
-  });
-}
-
-function registerDockEntry(cesdk: CreativeEditorSDK): void {
-  // Component definition only — placement in the dock is the host
-  // configuration's responsibility (see photo-editor/ui/dock.ts), which
-  // lists TRANSLATE_DOCK_ID explicitly. Calling insertOrderComponent here
-  // would add a second copy.
-  cesdk.ui.registerComponent(TRANSLATE_DOCK_ID, ({ builder }) => {
-    builder.Button(`${TRANSLATE_DOCK_ID}.button`, {
-      label: 'libraries.ly.img.translate.label',
-      icon: TRANSLATE_ICON_ID,
-      isActive: cesdk.ui.isPanelOpen(TRANSLATE_PANEL_ID),
-      onClick: () => {
-        if (cesdk.ui.isPanelOpen(TRANSLATE_PANEL_ID)) {
-          cesdk.ui.closePanel(TRANSLATE_PANEL_ID);
-        } else {
-          cesdk.ui.openPanel(TRANSLATE_PANEL_ID);
-        }
       }
     });
   });
