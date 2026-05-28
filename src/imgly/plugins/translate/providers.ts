@@ -39,3 +39,37 @@ export const TRANSLATE_MODELS: readonly TranslateModel[] = [
   { id: 'openai/gpt-image-2-edit', label: 'GPT Image 2' },
   { id: 'bytedance/seedream-4.5-edit', label: 'Seedream 4.5' }
 ] as const;
+
+export type TranslatePipeline = 'direct' | 'magic-layers';
+
+export interface TranslatePipelineSpec {
+  id: TranslatePipeline;
+  label: string;
+  description: string;
+}
+
+/**
+ * The two translation pipelines surfaced on the upload screen.
+ *
+ * - 'direct' is the only implemented pipeline today — one gateway request
+ *   per language, returning a flat translated image (text baked in).
+ * - 'magic-layers' is a placeholder for an upcoming image-to-scene model
+ *   that returns scene files with editable text layers. The panel renders
+ *   without a model selector and with a disabled Translate button until
+ *   the gateway integration lands.
+ */
+export const TRANSLATE_PIPELINES: readonly TranslatePipelineSpec[] = [
+  {
+    id: 'direct',
+    label: 'Direct',
+    description: 'Flat image with higher fidelity.'
+  },
+  {
+    id: 'magic-layers',
+    label: 'IMG.LY Magic Layers',
+    description:
+      'Editable text, faster & cheaper for more than 2 translations. (Coming soon)'
+  }
+] as const;
+
+export const DEFAULT_TRANSLATE_PIPELINE: TranslatePipeline = 'direct';

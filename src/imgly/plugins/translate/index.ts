@@ -42,7 +42,13 @@ export {
   TRANSLATE_ICON_ID,
   findFirstImageBlockOnFirstPage
 } from './panel';
-export { TARGET_LANGUAGES, DEFAULT_GATEWAY_URL } from './providers';
+export {
+  TARGET_LANGUAGES,
+  TRANSLATE_PIPELINES,
+  DEFAULT_TRANSLATE_PIPELINE,
+  DEFAULT_GATEWAY_URL
+} from './providers';
+export type { TranslatePipeline, TranslatePipelineSpec } from './providers';
 export { getApiKey, setConfiguredApiKey } from './credentials';
 export {
   renderOnboardingScreen,
