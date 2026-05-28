@@ -71,7 +71,13 @@ function registerPanel(
     const isRunning = state('translate.isRunning', false);
 
     const selection = engine.block.findAllSelected();
-    const selectedImageBlock = pickImageFillBlock(engine, selection);
+    // Selection wins; if the user hasn't selected an image block (or has
+    // selected something else, like a page or text), fall back to the
+    // first-page image — the original upload — so a stray click outside
+    // the image doesn't break the workflow.
+    const selectedImageBlock =
+      pickImageFillBlock(engine, selection) ??
+      findFirstImageBlockOnFirstPage(engine);
     const selectedLanguages = TARGET_LANGUAGES.filter(
       (lang) => checked.value[lang.id]
     );
@@ -156,6 +162,27 @@ function pickImageFillBlock(
   const fill = engine.block.getFill(block);
   if (engine.block.getType(fill) !== '//ly.img.ubq/fill/image') return null;
   return block;
+}
+
+/**
+ * The first image-fill graphic block on the document's first page —
+ * which, in this app, is always the originally uploaded source image.
+ * Used as the fallback "source" when the user hasn't selected anything
+ * specific, and exported so the bootstrap (src/index.ts) can pre-select
+ * it on editor mount with the same predicate.
+ */
+export function findFirstImageBlockOnFirstPage(
+  engine: CreativeEditorSDK['engine']
+): number | null {
+  const pages = engine.scene.getPages();
+  const firstPage = pages[0];
+  if (firstPage == null) return null;
+  for (const child of engine.block.getChildren(firstPage)) {
+    if (!engine.block.supportsFill(child)) continue;
+    const fill = engine.block.getFill(child);
+    if (engine.block.getType(fill) === '//ly.img.ubq/fill/image') return child;
+  }
+  return null;
 }
 
 interface RunArgs {

@@ -14,6 +14,7 @@ import CreativeEditorSDK from '@cesdk/cesdk-js';
 
 import { initPhotoEditor } from './imgly';
 import {
+  findFirstImageBlockOnFirstPage,
   getApiKey,
   renderOnboardingScreen,
   setConfiguredApiKey,
@@ -84,7 +85,7 @@ async function mountEditor(
     return;
   }
 
-  const imageBlock = findFirstImageBlock(cesdk.engine);
+  const imageBlock = findFirstImageBlockOnFirstPage(cesdk.engine);
   if (imageBlock != null) cesdk.engine.block.select(imageBlock);
   cesdk.ui.openPanel(TRANSLATE_PANEL_ID);
 
@@ -114,18 +115,3 @@ function navigateBackToUpload(
   showCurrentScreen(root);
 }
 
-function findFirstImageBlock(
-  engine: CreativeEditorSDK['engine']
-): number | null {
-  const pages = engine.scene.getPages();
-  for (const page of pages) {
-    for (const child of engine.block.getChildren(page)) {
-      if (!engine.block.supportsFill(child)) continue;
-      const fill = engine.block.getFill(child);
-      if (engine.block.getType(fill) === '//ly.img.ubq/fill/image') {
-        return child;
-      }
-    }
-  }
-  return null;
-}
