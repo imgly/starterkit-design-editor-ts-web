@@ -98,9 +98,9 @@ photo-translate-demo/
 ## How translation works
 
 The demo opens to a small upload screen (the editor is *not* the entry
-point). Drop a photo that contains text, click **Continue to editor**, and
-the photo opens in a Photo Editor UI with the Translate panel pre-opened
-and the image pre-selected.
+point). Drop a photo that contains text, pick a translation pipeline (see
+below), click **Continue to editor**, and the photo opens in a Photo Editor
+UI with the Translate panel pre-opened and the image pre-selected.
 
 The dock contains exactly two entries: **Translate** and **Uploads**.
 
@@ -163,13 +163,19 @@ backend from the `ly.img.ai.getToken` action handler instead.
 ### Using it
 
 1. Drop or pick a photo with text on the upload screen.
-2. Click **Continue to editor**. The photo opens with the Translate panel
+2. Choose a pipeline — **Direct** (default) or **IMG.LY Magic Layers**.
+3. Click **Continue to editor**. The photo opens with the Translate panel
    already open and the image already selected.
-3. Pick a model (default: Nano Banana Pro). Check one or more target
-   languages (German, English, Spanish, Russian, Chinese).
-4. Click **Translate**. One new page per checked language is appended,
-   each containing the photo with its text translated. The whole batch is
-   one undo step.
+4. Check one or more target languages (German, English, French, Spanish,
+   Russian, Chinese). With the **Direct** pipeline you also pick an
+   image-edit model (default: Nano Banana Pro); the **Magic Layers**
+   pipeline has no model selector.
+5. Click **Translate**. One new page per checked language is appended, and
+   the whole batch is one undo step:
+   - **Direct** — each page contains the photo with its text rendered into
+     the bitmap (not editable).
+   - **Magic Layers** — each page is an editable scene whose text layers
+     hold the translated strings; click any text to edit it.
 
 Use the **Back** button in the top-left of the navigation bar to return to
 the upload screen. Edits to the current scene are discarded — like a page
