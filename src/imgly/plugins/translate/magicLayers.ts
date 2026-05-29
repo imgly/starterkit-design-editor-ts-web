@@ -71,11 +71,18 @@ export async function runMagicLayersTranslation(
   // expose it as a blob: object URL, the same scheme the rest of the app
   // uses to feed the engine in-memory bytes (see upload/scene.ts).
   let archiveObjectUrl: string;
-  engine.block.setState(block, { type: 'Pending', progress: 0 });
   try {
+    // Export the source while the block is still 'Ready'. `export` performs
+    // an internal update to resolve the block's layout and will not return
+    // for a block in the 'Pending' state — and the only thing that clears
+    // Pending is the finally below, which can't run until export returns.
+    // Marking Pending before exporting therefore deadlocks (the symptom:
+    // both spinners spin, no gateway request is ever sent). The Direct
+    // pipeline relies on this same ordering — export first, then Pending.
     const sourceBlob = await engine.block.export(block, {
       mimeType: 'image/png'
     });
+    engine.block.setState(block, { type: 'Pending', progress: 0 });
     const upload = await client.upload(sourceBlob, 'image/png');
 
     // 2. Single image-to-scene call. The gateway returns a `data:` URL
