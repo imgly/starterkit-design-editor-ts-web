@@ -1,16 +1,20 @@
 /**
  * Magic Layers translation pipeline.
  *
- * One `imgly/image-to-scene` gateway call produces an editable scene
- * archive. We load that archive N times — once per target language —
- * collect every text block in the loaded scene, batch-translate the
- * strings via the text gateway adapter, replace each text in place,
- * and append the result as a new page beside the source page.
+ * One `imgly/image-to-scene` gateway call turns the source image into a
+ * full, editable CE.SDK *scene* (the model returns a scene archive, not
+ * loose blocks). Because a scene archive can only be loaded via
+ * `engine.scene.loadFromArchiveURL` — which replaces the active document —
+ * we make that scene the document and build the translated pages inside it:
  *
- * Pure orchestrator on top of `translateTexts` (gateway) and the
- * CE.SDK engine. Failure mode mirrors the direct pipeline: per-language
- * `Promise.allSettled`; a failure in any one language does not block
- * the others.
+ *   - page 1 stays as the untranslated, editable "Original";
+ *   - for each target language we duplicate that page, batch-translate its
+ *     text blocks via the text gateway adapter, and rename it.
+ *
+ * Result: an editable page per language. Text translation runs per language
+ * via `Promise.allSettled` (a failure in one language doesn't block the
+ * others); the scene mutations are applied sequentially on the single
+ * shared scene.
  */
 
 import type CreativeEditorSDK from '@cesdk/cesdk-js';
@@ -32,25 +36,6 @@ export async function runMagicLayersTranslation(
   const { cesdk, block, languages } = args;
   const engine = cesdk.engine;
 
-  const sourcePageId = findParentPage(engine, block);
-  if (sourcePageId == null) {
-    cesdk.ui.showNotification({
-      type: 'error',
-      message: 'Could not find the source page.',
-      duration: 'medium'
-    });
-    return;
-  }
-  const sceneParent = engine.block.getParent(sourcePageId);
-  if (sceneParent == null) {
-    cesdk.ui.showNotification({
-      type: 'error',
-      message: 'Source page has no parent — cannot append translated pages.',
-      duration: 'medium'
-    });
-    return;
-  }
-
   const client = getGatewayClient();
   if (!client) {
     cesdk.ui.showNotification({
@@ -61,32 +46,24 @@ export async function runMagicLayersTranslation(
     return;
   }
 
-  // 1. Export the selected image block as PNG and upload it.
+  // --- Phase 1: source image → scene archive --------------------------------
   //
   // `archiveObjectUrl` is a blob: object URL holding the scene archive.
-  // We must hand `loadFromArchiveURL` a URL the engine's resource loader
-  // can fetch — and the gateway returns the archive as a `data:` URL,
-  // which the engine loader does NOT handle (it silently never resolves,
-  // hanging the whole pipeline). So we fetch the data URL into a Blob and
-  // expose it as a blob: object URL, the same scheme the rest of the app
-  // uses to feed the engine in-memory bytes (see upload/scene.ts).
+  // The gateway hands back the archive as a `data:` URL, which the engine's
+  // resource loader does not fetch — so we materialise it as a blob: URL,
+  // the same scheme the rest of the app uses to feed the engine bytes.
   let archiveObjectUrl: string;
   try {
     // Export the source while the block is still 'Ready'. `export` performs
-    // an internal update to resolve the block's layout and will not return
-    // for a block in the 'Pending' state — and the only thing that clears
-    // Pending is the finally below, which can't run until export returns.
-    // Marking Pending before exporting therefore deadlocks (the symptom:
-    // both spinners spin, no gateway request is ever sent). The Direct
-    // pipeline relies on this same ordering — export first, then Pending.
+    // an internal layout update and will not return for a 'Pending' block —
+    // so mark Pending only AFTER exporting (the Direct pipeline does the
+    // same; reversing the order deadlocks before any request is sent).
     const sourceBlob = await engine.block.export(block, {
       mimeType: 'image/png'
     });
     engine.block.setState(block, { type: 'Pending', progress: 0 });
-    const upload = await client.upload(sourceBlob, 'image/png');
 
-    // 2. Single image-to-scene call. The gateway returns a `data:` URL
-    //    pointing at the scene archive (zip).
+    const upload = await client.upload(sourceBlob, 'image/png');
     const sceneArchiveUrl = await client.generate(
       MAGIC_LAYERS_MODEL_ID,
       {
@@ -96,13 +73,13 @@ export async function runMagicLayersTranslation(
       {}
     );
 
-    // Convert the data: URL to a blob: object URL once and reuse it for
-    // every language's loadFromArchiveURL call below.
     const archiveBlob = await (await fetch(sceneArchiveUrl)).blob();
     archiveObjectUrl = URL.createObjectURL(archiveBlob);
   } catch (err) {
     console.error('Magic Layers: image-to-scene failed:', err);
-    engine.block.setState(block, { type: 'Ready' });
+    if (engine.block.isValid(block)) {
+      engine.block.setState(block, { type: 'Ready' });
+    }
     cesdk.ui.showNotification({
       type: 'error',
       message: 'Magic Layers: scene generation failed.',
@@ -111,105 +88,104 @@ export async function runMagicLayersTranslation(
     return;
   }
 
-  // 3. Per-language work — each language runs end-to-end independently.
-  //    Each loadFromArchiveURL call gets a fresh, independent copy of the
-  //    scene from the same object URL.
+  // --- Phase 2: load the scene + build a translated page per language -------
   try {
+    // Replace the current (source-image) document with the model's editable
+    // scene. `overrideEditorConfig: false` keeps our dock/panel setup.
+    await engine.scene.loadFromArchiveURL(archiveObjectUrl, false);
+
+    const templatePage = engine.scene.getPages()[0];
+    if (templatePage == null) {
+      throw new Error('Loaded scene has no pages.');
+    }
+    engine.block.setName(templatePage, 'Original');
+
+    // Snapshot the template's text once — this is the translation source.
+    // DFS order is stable, so a duplicate's text blocks line up by index.
+    const templateTextBlocks: number[] = [];
+    collectTextBlocks(engine, templatePage, templateTextBlocks);
+    const originals = templateTextBlocks.map((tb) =>
+      engine.block.getString(tb, 'text/text')
+    );
+
+    // Translate every language in parallel (the gateway calls are the slow
+    // part); apply the results to the scene sequentially below.
     const results = await Promise.allSettled(
       languages.map((lang) =>
-        translateOneLanguage({
-          engine,
-          sceneArchiveUrl: archiveObjectUrl,
-          sceneParent,
-          lang
+        translateTexts({
+          texts: originals,
+          targetLanguagePromptName: lang.promptName
         })
       )
     );
 
-    const failures: { lang: string; error: unknown }[] = [];
+    const failedLangs: string[] = [];
     let added = 0;
     for (let i = 0; i < results.length; i++) {
-      const r = results[i];
       const lang = languages[i];
-      if (r.status === 'fulfilled') {
-        added++;
-      } else {
-        console.error(`Magic Layers failed for ${lang.label}:`, r.reason);
-        failures.push({ lang: lang.label, error: r.reason });
+      const result = results[i];
+      if (result.status !== 'fulfilled') {
+        console.error(`Magic Layers failed for ${lang.label}:`, result.reason);
+        failedLangs.push(lang.label);
+        continue;
       }
+
+      const translated = result.value;
+      // Duplicate the editable Original page (attaches to its parent, so it
+      // becomes the next page) and replace its text with this language's.
+      const page = engine.block.duplicate(templatePage);
+      const pageTextBlocks: number[] = [];
+      collectTextBlocks(engine, page, pageTextBlocks);
+      const n = Math.min(pageTextBlocks.length, translated.length);
+      for (let j = 0; j < n; j++) {
+        engine.block.replaceText(pageTextBlocks[j], translated[j]);
+      }
+      engine.block.setName(page, lang.label);
+      added++;
     }
 
     if (added > 0) engine.editor.addUndoStep();
 
-    if (failures.length === 0) {
+    if (failedLangs.length === 0) {
       cesdk.ui.showNotification({
         type: 'success',
         message: `${added} translated page${added === 1 ? '' : 's'} added.`,
         duration: 'medium'
       });
     } else {
-      const failedLangs = failures.map((f) => f.lang).join(', ');
+      const failed = failedLangs.join(', ');
       cesdk.ui.showNotification({
         type: added > 0 ? 'warning' : 'error',
         message:
           added > 0
-            ? `${added} page${added === 1 ? '' : 's'} added; ${failedLangs} failed.`
-            : `Magic Layers translation failed for ${failedLangs}.`,
+            ? `${added} page${added === 1 ? '' : 's'} added; ${failed} failed.`
+            : `Magic Layers translation failed for ${failed}.`,
         duration: 'long'
       });
     }
+  } catch (err) {
+    console.error('Magic Layers: building translated pages failed:', err);
+    cesdk.ui.showNotification({
+      type: 'error',
+      message: 'Magic Layers: could not build the translated scene.',
+      duration: 'medium'
+    });
   } finally {
     URL.revokeObjectURL(archiveObjectUrl);
-    engine.block.setState(block, { type: 'Ready' });
-  }
-}
-
-interface TranslateOneArgs {
-  engine: CreativeEditorSDK['engine'];
-  sceneArchiveUrl: string;
-  sceneParent: number;
-  lang: TargetLanguage;
-}
-
-async function translateOneLanguage(args: TranslateOneArgs): Promise<void> {
-  const { engine, sceneArchiveUrl, sceneParent, lang } = args;
-
-  // Each call gets a fresh, independent copy of the model's scene as a
-  // set of detached blocks (block.loadFromArchiveURL — NOT
-  // scene.loadFromArchiveURL, which would replace the live document).
-  const loaded = await engine.block.loadFromArchiveURL(sceneArchiveUrl);
-  if (loaded.length === 0) {
-    throw new Error('loadFromArchiveURL returned no blocks');
-  }
-
-  // The model emits a scene archive, so a loaded top-level block may be a
-  // scene wrapping the page rather than the page itself. Find the first
-  // page among the loaded blocks or their descendants; fall back to the
-  // first loaded block if the archive turns out to be page-shaped already.
-  const page = findFirstPage(engine, loaded) ?? loaded[0];
-
-  // Recursively collect every text block under the loaded page.
-  const textBlocks: number[] = [];
-  collectTextBlocks(engine, page, textBlocks);
-
-  if (textBlocks.length > 0) {
-    const originals = textBlocks.map((tb) =>
-      engine.block.getString(tb, 'text/text')
-    );
-    const translated = await translateTexts({
-      texts: originals,
-      targetLanguagePromptName: lang.promptName
-    });
-    // Length match is already enforced by translateTexts.
-    for (let i = 0; i < textBlocks.length; i++) {
-      engine.block.replaceText(textBlocks[i], translated[i]);
+    // The source block belongs to the document we replaced; only touch it
+    // if the scene swap never happened (e.g. loadFromArchiveURL threw).
+    if (engine.block.isValid(block)) {
+      engine.block.setState(block, { type: 'Ready' });
     }
   }
-
-  engine.block.setName(page, lang.label);
-  engine.block.appendChild(sceneParent, page);
 }
 
+/**
+ * Depth-first collect of every text block under `root` (inclusive). Text
+ * blocks can be nested inside groups, so we recurse. The traversal order is
+ * deterministic, which is what lets a duplicated page's text blocks line up
+ * with the template's by index.
+ */
 function collectTextBlocks(
   engine: CreativeEditorSDK['engine'],
   root: number,
@@ -221,33 +197,4 @@ function collectTextBlocks(
   for (const child of engine.block.getChildren(root)) {
     collectTextBlocks(engine, child, acc);
   }
-}
-
-/**
- * Depth-first search for the first `page` block among the given roots and
- * their descendants. Returns null if no page is found (e.g. the archive
- * is a bare graphic), letting the caller fall back to the first root.
- */
-function findFirstPage(
-  engine: CreativeEditorSDK['engine'],
-  roots: number[]
-): number | null {
-  for (const root of roots) {
-    if (engine.block.getType(root) === '//ly.img.ubq/page') return root;
-    const inChildren = findFirstPage(engine, engine.block.getChildren(root));
-    if (inChildren != null) return inChildren;
-  }
-  return null;
-}
-
-function findParentPage(
-  engine: CreativeEditorSDK['engine'],
-  block: number
-): number | null {
-  let cur: number | null = block;
-  while (cur != null) {
-    if (engine.block.getType(cur) === '//ly.img.ubq/page') return cur;
-    cur = engine.block.getParent(cur);
-  }
-  return null;
 }
