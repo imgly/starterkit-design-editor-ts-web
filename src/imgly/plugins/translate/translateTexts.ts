@@ -43,10 +43,18 @@ export async function translateTexts(
     '\n\nInput:\n' +
     JSON.stringify(args.texts);
 
+  // The gateway's text endpoint (/v1/responses) expects a chat-style
+  // `messages` array for `openai/gpt-5.4-mini` — sending `{ prompt }`
+  // returns 400 "messages is required".
+  //
   // Drain the stream — generateStream returns the final accumulated
   // text as the AsyncGenerator's return value. `for await…of` only
   // sees intermediate yields, so we iterate manually.
-  const stream = client.generateStream(TEXT_MODEL_ID, { prompt }, {});
+  const stream = client.generateStream(
+    TEXT_MODEL_ID,
+    { messages: [{ role: 'user', content: prompt }] },
+    {}
+  );
   let final = '';
   while (true) {
     const { value, done } = await stream.next();

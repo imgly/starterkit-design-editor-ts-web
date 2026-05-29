@@ -62,7 +62,15 @@ export async function runMagicLayersTranslation(
   }
 
   // 1. Export the selected image block as PNG and upload it.
-  let sceneArchiveUrl: string;
+  //
+  // `archiveObjectUrl` is a blob: object URL holding the scene archive.
+  // We must hand `loadFromArchiveURL` a URL the engine's resource loader
+  // can fetch — and the gateway returns the archive as a `data:` URL,
+  // which the engine loader does NOT handle (it silently never resolves,
+  // hanging the whole pipeline). So we fetch the data URL into a Blob and
+  // expose it as a blob: object URL, the same scheme the rest of the app
+  // uses to feed the engine in-memory bytes (see upload/scene.ts).
+  let archiveObjectUrl: string;
   engine.block.setState(block, { type: 'Pending', progress: 0 });
   try {
     const sourceBlob = await engine.block.export(block, {
@@ -70,11 +78,9 @@ export async function runMagicLayersTranslation(
     });
     const upload = await client.upload(sourceBlob, 'image/png');
 
-    // 2. Single image-to-scene call. The gateway returns a data URL
-    //    pointing at the scene archive (zip). We pass it N times to
-    //    loadFromArchiveURL below — each call gets a fresh copy of
-    //    the scene to mutate independently.
-    sceneArchiveUrl = await client.generate(
+    // 2. Single image-to-scene call. The gateway returns a `data:` URL
+    //    pointing at the scene archive (zip).
+    const sceneArchiveUrl = await client.generate(
       MAGIC_LAYERS_MODEL_ID,
       {
         image_url: upload.asset_url,
@@ -82,6 +88,11 @@ export async function runMagicLayersTranslation(
       },
       {}
     );
+
+    // Convert the data: URL to a blob: object URL once and reuse it for
+    // every language's loadFromArchiveURL call below.
+    const archiveBlob = await (await fetch(sceneArchiveUrl)).blob();
+    archiveObjectUrl = URL.createObjectURL(archiveBlob);
   } catch (err) {
     console.error('Magic Layers: image-to-scene failed:', err);
     engine.block.setState(block, { type: 'Ready' });
@@ -94,12 +105,14 @@ export async function runMagicLayersTranslation(
   }
 
   // 3. Per-language work — each language runs end-to-end independently.
+  //    Each loadFromArchiveURL call gets a fresh, independent copy of the
+  //    scene from the same object URL.
   try {
     const results = await Promise.allSettled(
       languages.map((lang) =>
         translateOneLanguage({
           engine,
-          sceneArchiveUrl,
+          sceneArchiveUrl: archiveObjectUrl,
           sceneParent,
           lang
         })
@@ -139,6 +152,7 @@ export async function runMagicLayersTranslation(
       });
     }
   } finally {
+    URL.revokeObjectURL(archiveObjectUrl);
     engine.block.setState(block, { type: 'Ready' });
   }
 }
