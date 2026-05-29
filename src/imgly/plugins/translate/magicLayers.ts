@@ -108,6 +108,19 @@ export async function runMagicLayersTranslation(
       engine.block.getString(tb, 'text/text')
     );
 
+    /* eslint-disable no-console */
+    console.log(
+      `[Magic Layers] image-to-scene returned ${templateTextBlocks.length} text block(s):`
+    );
+    templateTextBlocks.forEach((tb, i) => {
+      console.log(
+        `  [${i}] block #${tb} (${engine.block.getType(tb)}): ${JSON.stringify(
+          originals[i]
+        )}`
+      );
+    });
+    /* eslint-enable no-console */
+
     // Translate every language in parallel (the gateway calls are the slow
     // part); apply the results to the scene sequentially below.
     const results = await Promise.allSettled(

@@ -46,13 +46,28 @@ export async function translateTexts(
   // The gateway's text endpoint (/v1/responses) expects a chat-style
   // `messages` array for `openai/gpt-5.4-mini` — sending `{ prompt }`
   // returns 400 "messages is required".
-  //
+  const requestBody = {
+    model: TEXT_MODEL_ID,
+    messages: [{ role: 'user', content: prompt }]
+  };
+
+  /* eslint-disable no-console */
+  console.log(
+    `[translateTexts] → ChatGPT request (${args.targetLanguagePromptName}):`,
+    requestBody
+  );
+  console.log(
+    `[translateTexts] → input texts (${args.texts.length}):`,
+    args.texts
+  );
+  /* eslint-enable no-console */
+
   // Drain the stream — generateStream returns the final accumulated
   // text as the AsyncGenerator's return value. `for await…of` only
   // sees intermediate yields, so we iterate manually.
   const stream = client.generateStream(
     TEXT_MODEL_ID,
-    { messages: [{ role: 'user', content: prompt }] },
+    { messages: requestBody.messages },
     {}
   );
   let final = '';
@@ -63,6 +78,12 @@ export async function translateTexts(
       break;
     }
   }
+
+  // eslint-disable-next-line no-console
+  console.log(
+    `[translateTexts] ← ChatGPT response (${args.targetLanguagePromptName}):`,
+    final
+  );
 
   let parsed: unknown;
   try {
