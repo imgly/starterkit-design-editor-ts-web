@@ -10,6 +10,7 @@ import { TARGET_LANGUAGES, TRANSLATE_MODELS } from './providers';
 import type { TranslatePipeline } from './providers';
 import { translateImage, TranslateError } from './translate';
 import { appendTranslatedPage } from './pages';
+import { runMagicLayersTranslation } from './magicLayers';
 
 export const TRANSLATE_PANEL_ID = '//ly.img.panel/translate';
 const TRANSLATE_ICON_SET_ID = 'ly.img.translate';
@@ -54,8 +55,6 @@ function registerTranslations(cesdk: CreativeEditorSDK): void {
         'Choose at least one target language.',
       'panel.translate.hint.noApiKey':
         'AI API key not configured. Set VITE_AI_API_KEY in .env.',
-      'panel.translate.hint.notImplemented':
-        'Magic Layers translation is coming soon.',
       'libraries.ly.img.translate.label': 'Translate'
     }
   });
@@ -111,9 +110,8 @@ function registerPanel(
           return;
         }
 
-        // Model selector — Direct pipeline only. Magic Layers has no
-        // model choice; the gateway exposes a single image-to-scene
-        // model and the panel mirrors that by skipping the row entirely.
+        // Model selector — Direct pipeline only. Magic Layers exposes
+        // a single image-to-scene model on the gateway; no UI choice.
         if (!isMagicLayers) {
           builder.Select('translate.model', {
             inputLabel: 'panel.translate.model',
@@ -137,16 +135,7 @@ function registerPanel(
           });
         }
 
-        // Hint precedence: Magic Layers' notImplemented hint replaces the
-        // noLanguages hint, since the button is disabled for a more
-        // fundamental reason than missing language picks.
-        if (isMagicLayers) {
-          builder.Text('translate.hint', {
-            content: cesdk.i18n.translate(
-              'panel.translate.hint.notImplemented'
-            )
-          });
-        } else if (selectedLanguages.length === 0) {
+        if (selectedLanguages.length === 0) {
           builder.Text('translate.hint', {
             content: cesdk.i18n.translate('panel.translate.hint.noLanguages')
           });
@@ -156,23 +145,24 @@ function registerPanel(
           label: 'panel.translate.translate',
           color: 'accent',
           isLoading: isRunning.value,
-          isDisabled:
-            isRunning.value ||
-            isMagicLayers ||
-            selectedLanguages.length === 0,
+          isDisabled: isRunning.value || selectedLanguages.length === 0,
           onClick: () => {
-            // Defensive: the button is disabled in Magic Layers mode, but
-            // guard the call site anyway so the boundary is explicit.
-            if (isMagicLayers) return;
             const block = selectedImageBlock;
             if (!block) return;
             isRunning.setValue(true);
-            void runTranslation({
-              cesdk,
-              modelId: effectiveModelId,
-              block,
-              languages: selectedLanguages
-            }).finally(() => {
+            const run = isMagicLayers
+              ? runMagicLayersTranslation({
+                  cesdk,
+                  block,
+                  languages: selectedLanguages
+                })
+              : runTranslation({
+                  cesdk,
+                  modelId: effectiveModelId,
+                  block,
+                  languages: selectedLanguages
+                });
+            void run.finally(() => {
               isRunning.setValue(false);
             });
           }
