@@ -58,6 +58,7 @@ async function mountEditor(
   let cesdk: CreativeEditorSDK;
   try {
     cesdk = await CreativeEditorSDK.create(root, {
+      license: import.meta.env.VITE_CESDK_LICENSE,
       userId: 'starterkit-photo-translate-user'
     });
   } catch (err) {

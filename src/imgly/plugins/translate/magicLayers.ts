@@ -22,6 +22,7 @@ import type CreativeEditorSDK from '@cesdk/cesdk-js';
 import { getGatewayClient } from './translate';
 import { translateTexts } from './translateTexts';
 import { MAGIC_LAYERS_MODEL_ID, type TargetLanguage } from './providers';
+import { readOriginalImageBlob } from './sourceImage';
 
 export interface RunMagicLayersTranslationArgs {
   cesdk: CreativeEditorSDK;
@@ -54,21 +55,32 @@ export async function runMagicLayersTranslation(
   // the same scheme the rest of the app uses to feed the engine bytes.
   let archiveObjectUrl: string;
   try {
-    // Export the source while the block is still 'Ready'. `export` performs
-    // an internal layout update and will not return for a 'Pending' block —
-    // so mark Pending only AFTER exporting (the Direct pipeline does the
-    // same; reversing the order deadlocks before any request is sent).
-    const sourceBlob = await engine.block.export(block, {
-      mimeType: 'image/png'
-    });
+    // Send the user's *original* bytes, not a re-render. Re-exporting the
+    // block to PNG re-encodes the photo losslessly, which balloons a source
+    // JPEG several-fold for no quality gain. The upload path stashes the
+    // original file as an engine buffer (see upload/scene.ts), so we read
+    // those exact bytes straight back. Fall back to a PNG export only if the
+    // fill isn't a readable engine buffer.
+    //
+    // Acquire the source while the block is still 'Ready': the export
+    // fallback performs an internal layout update and will not return for a
+    // 'Pending' block — so mark Pending only AFTER reading (the Direct
+    // pipeline does the same; reversing the order deadlocks the fallback
+    // before any request is sent).
+    const sourceBlob =
+      readOriginalImageBlob(engine, block) ??
+      (await engine.block.export(block, { mimeType: 'image/png' }));
     engine.block.setState(block, { type: 'Pending', progress: 0 });
 
-    const upload = await client.upload(sourceBlob, 'image/png');
+    const upload = await client.upload(
+      sourceBlob,
+      sourceBlob.type || 'image/png'
+    );
     const sceneArchiveUrl = await client.generate(
       MAGIC_LAYERS_MODEL_ID,
       {
         image_url: upload.asset_url,
-        image_urls: [upload.asset_url]
+        image_urls: [upload.asset_url] // @REFACTOR: Are two attribues still needed?
       },
       {}
     );
@@ -94,7 +106,27 @@ export async function runMagicLayersTranslation(
     // scene. `overrideEditorConfig: false` keeps our dock/panel setup.
     await engine.scene.loadFromArchiveURL(archiveObjectUrl, false);
 
-    const templatePage = engine.scene.getPages()[0];
+    /* eslint-disable no-console */
+    const allPages = engine.scene.getPages();
+    console.log(
+      `[Magic Layers] image-to-scene scene loaded: ${allPages.length} page(s).`
+    );
+    let sceneTextTotal = 0;
+    allPages.forEach((page, i) => {
+      const pageTextBlocks: number[] = [];
+      collectTextBlocks(engine, page, pageTextBlocks);
+      sceneTextTotal += pageTextBlocks.length;
+      console.log(
+        `  page [${i}] block #${page} "${engine.block.getName(page) || '(unnamed)'}": ` +
+          `${pageTextBlocks.length} text block(s)`
+      );
+    });
+    console.log(
+      `[Magic Layers] scene total: ${allPages.length} page(s), ${sceneTextTotal} text block(s).`
+    );
+    /* eslint-enable no-console */
+
+    const templatePage = allPages[0];
     if (templatePage == null) {
       throw new Error('Loaded scene has no pages.');
     }

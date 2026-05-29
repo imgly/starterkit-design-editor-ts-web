@@ -11,6 +11,7 @@ import type { TranslatePipeline } from './providers';
 import { translateImage, TranslateError } from './translate';
 import { appendTranslatedPage } from './pages';
 import { runMagicLayersTranslation } from './magicLayers';
+import { readOriginalImageBlob } from './sourceImage';
 
 export const TRANSLATE_PANEL_ID = '//ly.img.panel/translate';
 const TRANSLATE_ICON_SET_ID = 'ly.img.translate';
@@ -237,9 +238,17 @@ async function runTranslation(args: RunArgs): Promise<void> {
     return;
   }
 
+  // Prefer the user's original, unmodified bytes (stored as an engine buffer
+  // at upload time) over a PNG re-export, which re-encodes the photo
+  // losslessly and balloons a source JPEG several-fold for no quality gain.
+  // Fall back to export if the fill isn't a readable engine buffer.
+  // `translateImage` uploads with `image.type`, so the recovered MIME type
+  // flows through.
   let sourceBlob: Blob;
   try {
-    sourceBlob = await engine.block.export(block, { mimeType: 'image/png' });
+    sourceBlob =
+      readOriginalImageBlob(engine, block) ??
+      (await engine.block.export(block, { mimeType: 'image/png' }));
   } catch (err) {
     console.error('Failed to export source image:', err);
     cesdk.ui.showNotification({
