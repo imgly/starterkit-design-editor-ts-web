@@ -108,15 +108,17 @@ The dock contains exactly two entries: **Translate** and **Uploads**.
 
 The upload screen lets the user pick between two translation pipelines:
 
-- **Direct** — the only implemented pipeline today. Sends the source image
-  and each target language to a gateway image-edit model; one gateway
-  request per language; returns a flat translated image with the text
-  baked into the bitmap.
+- **Direct** — sends the source image and each target language to a gateway
+  image-edit model; one gateway request per language; returns a flat
+  translated image with the text baked into the bitmap. Higher fidelity,
+  not editable afterwards.
 - **IMG.LY Magic Layers** — image-to-scene transformation that returns
-  editable scene files. Editable text, faster and cheaper for more than
-  two translations. *Coming soon* — until the gateway model ships, picking
-  this pipeline shows the Translate panel without the model selector and
-  with a disabled Translate button.
+  an editable scene per language. The pipeline makes one
+  `imgly/image-to-scene` gateway call to convert the source image into a
+  scene with text layers, then batch-translates each language's text
+  blocks in one shot via `openai/gpt-5.4-mini` so the model sees the full
+  set of strings together (consistent terminology, lower cost). Edit any
+  translated text directly in the resulting page.
 
 The pipeline is fixed for the editor's lifetime. To switch, click Back to
 return to the upload screen and pick the other option.
@@ -134,6 +136,14 @@ IMG.LY AI Gateway:
 
 The list is hard-coded in `src/imgly/plugins/translate/providers.ts`. To
 change it, edit `TRANSLATE_MODELS`.
+
+The Magic Layers pipeline uses two fixed gateway models instead — there is
+no UI choice:
+
+| Model              | Gateway id                  | Used for                |
+|--------------------|-----------------------------|-------------------------|
+| Image-to-scene     | `imgly/image-to-scene`      | Source image → scene    |
+| GPT 5.4 Mini       | `openai/gpt-5.4-mini`       | Batch text translation  |
 
 ### Configuration
 
