@@ -50,6 +50,16 @@ export function configureTranslate(opts: { gatewayUrl: string }): void {
   });
 }
 
+/**
+ * Return the configured gateway client, or null if `configureTranslate`
+ * has not been called yet. Used by sibling modules (the Magic Layers
+ * orchestrator, the text-translation adapter) that share the same
+ * gateway and token resolution.
+ */
+export function getGatewayClient(): GatewayClient | null {
+  return client;
+}
+
 export interface TranslateImageArgs {
   image: Blob;
   targetLanguageId: string;
