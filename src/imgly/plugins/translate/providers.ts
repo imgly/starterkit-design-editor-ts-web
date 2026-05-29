@@ -40,6 +40,14 @@ export const TRANSLATE_MODELS: readonly TranslateModel[] = [
   { id: 'bytedance/seedream-4.5-edit', label: 'Seedream 4.5' }
 ] as const;
 
+/**
+ * Gateway model id for the Magic Layers image-to-scene pipeline.
+ * Takes a source image + returns a scene archive (zip) with editable
+ * layers — including text blocks — that the host scene loads via
+ * `engine.block.loadFromArchiveURL`.
+ */
+export const MAGIC_LAYERS_MODEL_ID = 'imgly/image-to-scene';
+
 export type TranslatePipeline = 'direct' | 'magic-layers';
 
 export interface TranslatePipelineSpec {
@@ -51,12 +59,11 @@ export interface TranslatePipelineSpec {
 /**
  * The two translation pipelines surfaced on the upload screen.
  *
- * - 'direct' is the only implemented pipeline today — one gateway request
- *   per language, returning a flat translated image (text baked in).
- * - 'magic-layers' is a placeholder for an upcoming image-to-scene model
- *   that returns scene files with editable text layers. The panel renders
- *   without a model selector and with a disabled Translate button until
- *   the gateway integration lands.
+ * - 'direct' sends the source image to an image-edit model once per
+ *   language, returning a flat translated image (text baked in).
+ * - 'magic-layers' sends the source image to the `imgly/image-to-scene`
+ *   model once, then batch-translates the returned scene's text blocks
+ *   per language — yielding editable text layers in each translated page.
  */
 export const TRANSLATE_PIPELINES: readonly TranslatePipelineSpec[] = [
   {
@@ -68,7 +75,7 @@ export const TRANSLATE_PIPELINES: readonly TranslatePipelineSpec[] = [
     id: 'magic-layers',
     label: 'IMG.LY Magic Layers',
     description:
-      'Editable text, faster & cheaper for more than 2 translations. (Coming soon)'
+      'Editable text, faster & cheaper for more than 2 translations.'
   }
 ] as const;
 
