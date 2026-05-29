@@ -112,16 +112,22 @@ The upload screen lets the user pick between two translation pipelines:
   image-edit model; one gateway request per language; returns a flat
   translated image with the text baked into the bitmap. Higher fidelity,
   not editable afterwards.
-- **IMG.LY Magic Layers** — image-to-scene transformation that returns
-  an editable scene per language. The pipeline makes one
-  `imgly/image-to-scene` gateway call to convert the source image into a
-  scene with text layers, then batch-translates each language's text
-  blocks in one shot via `openai/gpt-5.4-mini` so the model sees the full
-  set of strings together (consistent terminology, lower cost). Edit any
-  translated text directly in the resulting page.
+- **IMG.LY Magic Layers** — image-to-scene transformation with fully
+  editable output. One `imgly/image-to-scene` gateway call converts the
+  source image into an editable scene with real text layers. That scene
+  becomes the document (page 1, kept as the untranslated *Original*); for
+  each target language the page is duplicated and its text blocks are
+  batch-translated in one shot via `openai/gpt-5.4-mini` — the model sees
+  the full set of strings together, for consistent terminology and lower
+  cost. Every translated page is editable: click any text to change it.
 
 The pipeline is fixed for the editor's lifetime. To switch, click Back to
 return to the upload screen and pick the other option.
+
+> **Note:** because the model returns a whole scene (loadable only by
+> replacing the active document), Magic Layers rebuilds the document as
+> *Original + one page per language* rather than appending to the uploaded
+> image the way Direct does.
 
 ### Models (Direct pipeline)
 
@@ -170,12 +176,13 @@ backend from the `ly.img.ai.getToken` action handler instead.
    Russian, Chinese). With the **Direct** pipeline you also pick an
    image-edit model (default: Nano Banana Pro); the **Magic Layers**
    pipeline has no model selector.
-5. Click **Translate**. One new page per checked language is appended, and
-   the whole batch is one undo step:
-   - **Direct** — each page contains the photo with its text rendered into
-     the bitmap (not editable).
-   - **Magic Layers** — each page is an editable scene whose text layers
-     hold the translated strings; click any text to edit it.
+5. Click **Translate**. You get one page per checked language:
+   - **Direct** — a new page per language is appended to the uploaded
+     image; each contains the photo with its text rendered into the bitmap
+     (not editable).
+   - **Magic Layers** — the document is rebuilt as *Original + one page per
+     language*; each page is an editable scene whose text layers hold the
+     translated strings, so you can click any text to edit it.
 
 Use the **Back** button in the top-left of the navigation bar to return to
 the upload screen. Edits to the current scene are discarded — like a page
