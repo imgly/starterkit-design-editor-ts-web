@@ -28,11 +28,11 @@ import {
 } from '@cesdk/cesdk-js/plugins';
 
 // Configuration and plugins
-import { DesignEditorConfig } from '../../design-editor/plugin';
+import { DesignEditorConfig } from './config/plugin';
 import { setupBackgroundRemovalPlugin } from './plugins/background-removal';
 
 // Re-export for external use
-export { DesignEditorConfig } from '../../design-editor/plugin';
+export { DesignEditorConfig } from './config/plugin';
 export { setupBackgroundRemovalPlugin } from './plugins/background-removal';
 
 /**
