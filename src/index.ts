@@ -3,13 +3,12 @@
  *
  * A complete design editor for creating graphics, templates, and multi-page documents.
  *
- * @see https://img.ly/docs/cesdk/js/get-started/overview-e18f40/
+ * @see https://img.ly/docs/cesdk/js/getting-started/
  */
 
 import CreativeEditorSDK from '@cesdk/cesdk-js';
 
 import { initDesignEditor } from './imgly';
-
 
 // ============================================================================
 // Configuration
@@ -38,7 +37,7 @@ CreativeEditorSDK.create('#cesdk_container', config)
     // Scene Loading
     // ============================================================================
 
-    await cesdk.load(
+    await cesdk.loadFromURL(
       'https://cdn.img.ly/packages/imgly/plugin-marketing-asset-source-web/1.0.0/assets/templates/4-5-marketing-ad/scene.scene'
     );
   })
